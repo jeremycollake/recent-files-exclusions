@@ -38,6 +38,9 @@
     <ClInclude Include="ListDialog.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ListSerializer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="RecentItemsExclusions.rc">

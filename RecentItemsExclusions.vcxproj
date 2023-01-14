@@ -140,6 +140,7 @@
   <ItemGroup>
     <ClInclude Include="DebugOut.h" />
     <ClInclude Include="ListDialog.h" />
+    <ClInclude Include="ListSerializer.h" />
     <ClInclude Include="PruningThread.h" />
     <ClInclude Include="RecentItemsExclusions.h" />
     <ClInclude Include="resource.h" />

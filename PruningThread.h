@@ -166,12 +166,11 @@ private:
 			do
 			{
 				if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
-				{
-					DEBUG_PRINT(L"%s", findData.cFileName);
+				{					
 					std::wstring filePath = path + L"\\" + findData.cFileName;
 					if (DoesTextExistInFile(filePath, vSearchPatterns))
 					{
-						DEBUG_PRINT(L"Text found! Deleting file ...");
+						DEBUG_PRINT(L"Text found! Deleting file %s ...", findData.cFileName);
 						if (!DeleteFile(filePath.c_str()))
 						{
 							DEBUG_PRINT(L"ERROR: Deleting file %s", filePath.c_str());
