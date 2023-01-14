@@ -1,3 +1,4 @@
+// TODO: consider name change to recent items pruner
 #include <iostream>
 #include <thread>
 #include <vector>
@@ -8,163 +9,243 @@
 #include <Windows.h>
 #include <shlobj.h>
 #include <conio.h>
+#include "../libcommon/libcommon/libCommon.h"
+#include "DebugOut.h"
+#include "RecentItemsExclusions.h"
+#include "PruningThread.h"
+#include "ListDialog.h"
+#include "resource.h"
 
-bool DoesTextExistInFile(const std::wstring& filepath, const std::vector<std::wstring>& vSearchPatterns)
+std::wstring g_strAppName = L"RecentItemsPruner";
+HINSTANCE g_hInst = NULL;
+HWND g_hWndSysTray = NULL;
+PruningThread g_PruningThread;
+
+bool CreateOrReinitializeTrayWindow(const bool bFirstTimeCreation)
 {
-	// read file into buffer
-	HANDLE hFile = CreateFile(filepath.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	if (hFile == INVALID_HANDLE_VALUE)
+	if (!bFirstTimeCreation)
 	{
-		wprintf(L"\n ERROR: Opening %s", filepath.c_str());
-		return false;
+		NOTIFYICONDATA ndata = {};
+		memset(&ndata, 0, sizeof(NOTIFYICONDATA)); // redundant
+		ndata.cbSize = sizeof(NOTIFYICONDATA);
+		ndata.hWnd = g_hWndSysTray;
+		ndata.uID = GetCurrentProcessId();	// our tray window ID will be our PID
+		ndata.uCallbackMessage = RecentItemsExclusions::UWM_TRAY;
+		Shell_NotifyIcon(NIM_DELETE, &ndata);
+
+		SendMessage(g_hWndSysTray, RecentItemsExclusions::UWM_REGISTER_TRAY_ICON, 0, 0);
 	}
-	DWORD dwSizeHigh = 0;
-	DWORD dwSizeLow = GetFileSize(hFile, &dwSizeHigh);
-	bool bTextFound = false;
-	if (dwSizeLow != INVALID_FILE_SIZE)
+	else
 	{
-		DWORD dwBytesRead = 0;
-		std::vector<char> buffer(dwSizeLow);
-		if (ReadFile(hFile, buffer.data(), dwSizeLow, &dwBytesRead, NULL))
+		_ASSERT(!g_hWndSysTray);
+
+		WNDCLASSEX wcex = {};
+		wcex.cbSize = sizeof(wcex);
+		wcex.style = CS_HREDRAW | CS_VREDRAW;
+		wcex.lpfnWndProc = (WNDPROC)TrayWndProc;
+		wcex.cbClsExtra = 0;
+		wcex.cbWndExtra = 0;
+		wcex.hInstance = g_hInst;
+		wcex.hIcon = LoadIcon(g_hInst, (LPCTSTR)IDI_ICON1);
+		wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
+		wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+		wcex.lpszMenuName = (LPCTSTR)IDR_MENU_TRAY;
+		wcex.lpszClassName = RecentItemsExclusions::SYSTRAY_WINDOW_CLASS_NAME;
+		wcex.hIconSm = wcex.hIcon;
+		RegisterClassEx(&wcex);
+
+		g_hWndSysTray = CreateWindow(RecentItemsExclusions::SYSTRAY_WINDOW_CLASS_NAME, RecentItemsExclusions::SYSTRAY_WINDOW_NAME,
+			WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, g_hInst, NULL);
+		_ASSERT(g_hWndSysTray);
+		if (g_hWndSysTray)
 		{
-			// search for text
-			for (auto iPattern : vSearchPatterns)
+			SendMessage(g_hWndSysTray, RecentItemsExclusions::UWM_REGISTER_TRAY_ICON, 0, 0);
+		}
+	}
+	return true;
+}
+
+
+
+LRESULT CALLBACK TrayWndProc(HWND hWnd, UINT nMessage, WPARAM wParam, LPARAM lParam)
+{
+	static HICON s_hAppIcon = NULL;
+	static UINT s_uTaskbarRestartMessageId = 0;
+	switch (nMessage)
+	{
+	case WM_CREATE:
+		// register to get taskbar recreation messages
+		s_uTaskbarRestartMessageId = RegisterWindowMessage(L"TaskbarCreated");
+		s_hAppIcon = LoadIcon(g_hInst, MAKEINTRESOURCE(IDI_ICON1));
+		PostMessage(hWnd, RecentItemsExclusions::UWM_START_PRUNING_THREAD, 0, 0);
+		return 0;
+	case WM_DESTROY:
+	{
+		DEBUG_PRINT(L"WM_DESTROY");
+		NOTIFYICONDATA ndata = {};
+		memset(&ndata, 0, sizeof(NOTIFYICONDATA)); // redundant
+		ndata.cbSize = sizeof(NOTIFYICONDATA);
+		ndata.hWnd = g_hWndSysTray;
+		ndata.uID = GetCurrentProcessId();	// our tray window ID will be our PID
+		ndata.uCallbackMessage = RecentItemsExclusions::UWM_TRAY;
+		Shell_NotifyIcon(NIM_DELETE, &ndata);
+		return 0;
+	}
+	case RecentItemsExclusions::UWM_START_PRUNING_THREAD:
+	{
+		std::vector<std::wstring> vMatchPhrases;
+		// temp testing
+		vMatchPhrases.push_back(L"prI");
+		g_PruningThread.Start(vMatchPhrases);
+		return 0;
+	}
+	case RecentItemsExclusions::UWM_STOP_PRUNING_THREAD:
+		g_PruningThread.Stop();
+		return 0;
+	case RecentItemsExclusions::UWM_REGISTER_TRAY_ICON:
+	{
+		DEBUG_PRINT(L"UWM_REGISTER_TRAY_ICON");
+		_ASSERT(s_hAppIcon);
+		NOTIFYICONDATA ndata = {};
+		memset(&ndata, 0, sizeof(ndata));	// redundant
+		ndata.cbSize = sizeof(NOTIFYICONDATA);
+		ndata.hWnd = hWnd;
+		ndata.uID = GetCurrentProcessId();	// our tray window ID will be our PID
+		ndata.uFlags = NIF_ICON | NIF_TIP | NIF_MESSAGE;
+		wcsncpy_s(ndata.szTip, _countof(ndata.szTip), g_strAppName.c_str(), _TRUNCATE);
+		ndata.hIcon = s_hAppIcon;
+		ndata.uTimeout = 10000; // just to have a default timeout
+		ndata.uCallbackMessage = RecentItemsExclusions::UWM_TRAY;
+
+		// set version afterwards			
+		DEBUG_PRINT(L"NIM_ADD");
+		if (!Shell_NotifyIcon(NIM_ADD, &ndata))
+		{
+			// TODO: this is probably not necessary, but done in older projects, so we'll continue since the consequence is the app not running at startup
+			//  theory is that explorer could be initializing, or reinitializing after our app starts.
+			//	Shouldn't occur to due TaskbarCreated notification coming reliably after explorer (re)starts
+			for (int n = 0; n < 20; n++)
 			{
-				if (std::search(buffer.begin(), buffer.end(), iPattern.begin(), iPattern.end(), [](wchar_t a, wchar_t b) { return std::toupper(a) == std::toupper(b); }) != buffer.end())
+				DEBUG_PRINT(L"NIM_ADD failed. retry %d", n);
+				Sleep(100);
+				if (Shell_NotifyIcon(NIM_ADD, &ndata))
 				{
-					bTextFound = true;
 					break;
 				}
 			}
 		}
+		// assume NIM_ADD or a failsafe retry succeeded
+		ndata.uVersion = NOTIFYICON_VERSION;
+		Shell_NotifyIcon(NIM_SETVERSION, &ndata);
 	}
-	CloseHandle(hFile);
-	return bTextFound;
-}
+	break;
+	case RecentItemsExclusions::UWM_TRAY:
+		switch (lParam)
+		{
+		case NIN_BALLOONHIDE:
+		case NIN_BALLOONTIMEOUT:
+			break;
+		case NIN_BALLOONUSERCLICK:
+			break;
+		case WM_LBUTTONDBLCLK:
+		case WM_LBUTTONUP:
 
-int PruneFilesystem(const std::vector<std::wstring>& vPaths, const std::vector<std::wstring>& vSearchPatterns)
-{
-	for (auto path : vPaths)
-	{
-		WIN32_FIND_DATA findData = {};
-		std::wstring filespec = path + L"\\*";
-		HANDLE hFind = FindFirstFile(filespec.c_str(), &findData);
-		if (hFind == INVALID_HANDLE_VALUE)
+			break;
+		case WM_RBUTTONUP:
 		{
-			wprintf(L"\n ERROR: Enumerating files in %s", path.c_str());
-			return -1;
-		}
-		do
-		{
-			if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+			POINT pt = {};
+			GetCursorPos(&pt);
+
+			//
+			// make sure latest settings are loaded!
+			//
+			// unknown crash seen here in debugger
+			//g_pMainWindow->m_cSettings.LoadConfigurationFromFile();
+
+			static HMENU s_hTrayMenu = NULL;
+			HMENU hMenuPopup = NULL;
+			if (!s_hTrayMenu)
 			{
-				wprintf(L"\n\t - %s", findData.cFileName);
-				std::wstring filePath = path + L"\\" + findData.cFileName;
-				if (DoesTextExistInFile(filePath, vSearchPatterns))
-				{
-					wprintf(L"\n\t\t Text found! Deleting file ...");
-					if (!DeleteFile(filePath.c_str()))
-					{
-						wprintf(L"\n ERROR: Deleting file %s", filePath.c_str());
-					}
-				}
+				s_hTrayMenu = LoadMenu(g_hInst, MAKEINTRESOURCE(IDR_MENU_TRAY));
 			}
-		} while (FindNextFile(hFind, &findData));
-		FindClose(hFind);
+			hMenuPopup = GetSubMenu(s_hTrayMenu, 0);
+
+			// this is MANDATORY - do not remove
+			SetForegroundWindow(hWnd);
+
+			unsigned long  nTrackRes = (unsigned long)TrackPopupMenu(hMenuPopup,
+				TPM_RETURNCMD |
+				TPM_RIGHTBUTTON,
+				pt.x, pt.y,
+				0,
+				hWnd,
+				NULL);
+
+			switch (nTrackRes)
+			{
+			case ID_TRAY_OPEN:
+				DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_EXCLUSIONS_LIST), NULL, &ListDialogProc, 0);
+				break;
+			case ID_TRAY_EXIT:
+				PostQuitMessage(0);
+				break;
+			default:
+				break;
+			}
+		} // end WM_RBUTTONUP
+		break;
+		} // end UWM_SYSTRAY
+	default:
+		if (nMessage == s_uTaskbarRestartMessageId)
+		{
+			DEBUG_PRINT(L"TaskbarCreateMessage");
+			CreateOrReinitializeTrayWindow(false);
+		}
+		else
+		{
+			return DefWindowProc(hWnd, nMessage, wParam, lParam);
+		}
 	}
 	return 0;
 }
 
-int FilesystemPruningThread(const HANDLE hExitEvent, const std::vector<std::wstring>& vSearchPatterns)
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nShowCmd)
 {
-	std::wstring pathRecentItems;
+	g_hInst = GetModuleHandle(nullptr);
+
+	// initialize common controls
+	INITCOMMONCONTROLSEX icex;
+	icex.dwSize = sizeof(icex);
+	icex.dwICC = ICC_BAR_CLASSES | ICC_LISTVIEW_CLASSES | ICC_STANDARD_CLASSES | ICC_TAB_CLASSES | ICC_LINK_CLASS;
+	if (!InitCommonControlsEx(&icex))
 	{
-		WCHAR* pwszPath = nullptr;
-		if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Recent, 0, NULL, &pwszPath)))
+		// W2K and XP pre-SP2
+		InitCommonControls();
+	}
+
+	CreateOrReinitializeTrayWindow(true);
+
+	// returns non-zero if message is OTHER than WM_QUIT, or -1 if invalid window handle
+	// see https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getmessage (recommends this exact clause)
+	BOOL bRet;
+	MSG msg;
+	HACCEL hAccelTable = LoadAccelerators(g_hInst, (LPCTSTR)IDR_ACCELERATOR1);
+
+	while ((bRet = GetMessage(&msg, NULL, 0, 0)) != 0)
+	{
+		if (bRet == -1)
 		{
-			pathRecentItems = pwszPath;
+			// handle the error and possibly exit
 		}
-		// MSDN says to free pwszPath regardless of result of SHGetKnownFolderPath, so do so if populated, even though it makes this code ugly
-		if (pwszPath)
+		else
 		{
-			CoTaskMemFree(pwszPath);
-		}
-	}
-	if (pathRecentItems.empty())
-	{
-		wprintf(L"\n ERROR resolving Recent Items path");
-		return -1;
-	}
-	wprintf(L"\n Path: %s", pathRecentItems.c_str());
-
-	// build the paths we want to check
-	std::vector<std::wstring> vPaths;
-	vPaths.push_back(pathRecentItems);
-	vPaths.push_back(pathRecentItems + L"\\AutomaticDestinations");
-	vPaths.push_back(pathRecentItems + L"\\CustomDestinations");
-
-	// do an initial prune
-	PruneFilesystem(vPaths, vSearchPatterns);
-
-	HANDLE hFindHandle = FindFirstChangeNotification(pathRecentItems.c_str(), TRUE, FILE_NOTIFY_CHANGE_FILE_NAME);
-	if (!hFindHandle)
-	{
-		wprintf(L"\n ERROR: Can't register change notification.");
-		return -2;
-	}
-
-	HANDLE hWaitHandles[2] = { hExitEvent, hFindHandle };
-	bool bExit = false;
-	while (!bExit)
-	{
-		DWORD dwWaitStatus = WaitForMultipleObjects(_countof(hWaitHandles), hWaitHandles, FALSE, INFINITE);
-		switch (dwWaitStatus)
-		{
-		case WAIT_OBJECT_0:
-			wprintf(L"\n Exit event received");
-			bExit = true;
-			break;
-		case WAIT_OBJECT_0 + 1:
-			wprintf(L"\n Change notification received, pruning ...");
-			PruneFilesystem(vPaths, vSearchPatterns);
-			if (!FindNextChangeNotification(hFindHandle))
+			if (!TranslateAccelerator(g_hWndSysTray, hAccelTable, &msg))
 			{
-				wprintf(L"\n ERROR: Change notification failed.");
-				bExit = true;
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
 			}
-			else
-			{
-				// Safety sleep in case monitored folder has rapid, continuous changes, causing this thread to hog CPU
-				//  Trade-off is this could delay processing of rapidly fired changes.
-				Sleep(100);
-			}
-			break;
-		default:
-			wprintf(L"\n ERROR: Unexpected wait result");
-			bExit = true;
-			break;
 		}
 	}
 
-	FindCloseChangeNotification(hFindHandle);
-
-	return 0;
-}
-
-int wmain(int argc, wchar_t* argv[])
-{
-	wprintf(L"\nQuick Access Exclusions\n");
-	std::vector<std::wstring> vSearchPatterns;
-	for (int i = 1; i < argc; i++)
-	{
-		vSearchPatterns.push_back(argv[i]);
-	}
-	HANDLE hExitEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-	std::thread workThread(FilesystemPruningThread, hExitEvent, vSearchPatterns);
-	wprintf(L"\n Press any key to exit ...");
-	while (!_kbhit());
-	SetEvent(hExitEvent);
-	CloseHandle(hExitEvent);
-	workThread.join();
 	return 0;
 }
