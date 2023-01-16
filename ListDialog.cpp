@@ -55,7 +55,7 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 	{
 		s_bChangesMade = false;	// reinit for subsequent dialog instances
 
-		SetMenu(hDlg, LoadMenu(g_RecentItemsExclusionsApp.g_hInst, MAKEINTRESOURCE(IDR_MENU_MAIN)));
+		SetMenu(hDlg, LoadMenu(g_RecentItemsExclusionsApp.hResourceModule, MAKEINTRESOURCE(IDR_MENU_MAIN)));
 
 		std::vector<std::wstring> vStrings;
 		if (g_RecentItemsExclusionsApp.ListSerializer.LoadListFromFile(g_RecentItemsExclusionsApp.g_strListSavePath, vStrings) > 0)
@@ -67,7 +67,7 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 	case WM_CLOSE:
 		if (s_bChangesMade)
 		{
-			if (MessageBox(hDlg, L"Save changes?", g_RecentItemsExclusionsApp.g_strAppName.c_str(), MB_ICONQUESTION | MB_YESNO) == IDYES)
+			if (MessageBox(hDlg, L"Save changes?", PRODUCT_NAME, MB_ICONQUESTION | MB_YESNO) == IDYES)
 			{
 				PostMessage(hDlg, WM_COMMAND, IDOK, 0);
 				break;
@@ -84,7 +84,7 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 		case IDC_ADD:
 		{
 			std::wstring wstrNew;
-			if (DialogBoxParam(g_RecentItemsExclusionsApp.g_hInst, MAKEINTRESOURCE(IDD_ENTRYINPUT), NULL, &NewEntryDialogProc, reinterpret_cast<LPARAM>(&wstrNew)) == 0)
+			if (DialogBoxParam(g_RecentItemsExclusionsApp.hResourceModule, MAKEINTRESOURCE(IDD_ENTRYINPUT), NULL, &NewEntryDialogProc, reinterpret_cast<LPARAM>(&wstrNew)) == 0)
 			{
 				if (wstrNew.length())
 				{
@@ -115,7 +115,7 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 		{
 			if (s_bChangesMade)
 			{
-				if (MessageBox(hDlg, L"Save changes?", g_RecentItemsExclusionsApp.g_strAppName.c_str(), MB_ICONQUESTION | MB_YESNO) == IDYES)
+				if (MessageBox(hDlg, L"Save changes?", PRODUCT_NAME, MB_ICONQUESTION | MB_YESNO) == IDYES)
 				{
 					PostMessage(hDlg, WM_COMMAND, IDOK, 0);
 					break;

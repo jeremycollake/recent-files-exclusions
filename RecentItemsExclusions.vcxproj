@@ -136,6 +136,8 @@
   <ItemGroup>
     <ClCompile Include="ListDialog.cpp" />
     <ClCompile Include="RecentItemsExclusions.cpp" />
+    <ClCompile Include="SignatureVerifier.cpp" />
+    <ClCompile Include="UpdateCheckFuncs.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DebugOut.h" />
@@ -144,6 +146,9 @@
     <ClInclude Include="PruningThread.h" />
     <ClInclude Include="RecentItemsExclusions.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="SignatureVerifier.h" />
+    <ClInclude Include="UpdateCheckFuncs.h" />
+    <ClInclude Include="versioninfo.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="RecentItemsExclusions.rc" />
@@ -155,6 +160,10 @@
     <ProjectReference Include="..\libcommon\libcommon\libcommon.vcxproj">
       <Project>{61c0e2a7-d5e6-47e0-bf3d-d24dc89d94fa}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\pl\version.rc2" />
+    <None Include="recentitemspruner.nsi" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
