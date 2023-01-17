@@ -233,7 +233,7 @@ Section uninstall
   Delete "$SMPROGRAMS\RecentItemsExclusions\*"  
   RMDir /r "$SMPROGRAMS\RecentItemsExclusions"   
          
-  ExecWait '"$INSTDIR\RecentItemsExclusions.exe" -terminate"'			  ; terminate any running instances
+  ExecWait '"$INSTDIR\RecentItemsExclusions.exe" -close"'	    		  ; close any running instances
   ExecWait '"$INSTDIR\RecentItemsExclusions.exe" -uninstall"'			  ; remove startup locations
   
   DeleteRegKey HKLM "SOFTWARE\RecentItemsExclusions"

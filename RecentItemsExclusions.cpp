@@ -6,6 +6,8 @@
 #include <iterator>
 #include <algorithm>
 #include <functional>
+#include <boost/program_options.hpp>
+
 #include <Windows.h>
 #include <shlobj.h>
 #include <conio.h>
@@ -20,6 +22,8 @@
 
 RecentItemsExclusions g_RecentItemsExclusionsApp;	// app globals and config
 PruningThread g_PruningThread;
+
+namespace po = boost::program_options;
 
 // UpdateCheckThread
 //  - periodically checks for updates
@@ -104,7 +108,7 @@ LRESULT CALLBACK TrayWndProc(HWND hWnd, UINT nMessage, WPARAM wParam, LPARAM lPa
 	case WM_CREATE:
 		// register to get taskbar recreation messages
 		s_uTaskbarRestartMessageId = RegisterWindowMessage(L"TaskbarCreated");
-		s_hAppIcon = LoadIcon(g_RecentItemsExclusionsApp.hInst, MAKEINTRESOURCE(IDI_ICON1));	
+		s_hAppIcon = LoadIcon(g_RecentItemsExclusionsApp.hInst, MAKEINTRESOURCE(IDI_ICON1));
 		PostMessage(hWnd, RecentItemsExclusions::UWM_START_UPDATE_CHECK_THREAD, 0, 0);
 		PostMessage(hWnd, RecentItemsExclusions::UWM_START_PRUNING_THREAD, 0, 0);
 		return 0;
@@ -123,7 +127,8 @@ LRESULT CALLBACK TrayWndProc(HWND hWnd, UINT nMessage, WPARAM wParam, LPARAM lPa
 	case RecentItemsExclusions::UWM_START_PRUNING_THREAD:
 	{
 		g_PruningThread.Stop();		// ensure stopped
-		std::vector<std::wstring> vMatchPhrases;		
+		std::vector<std::wstring> vMatchPhrases;
+		g_RecentItemsExclusionsApp.ListSerializer.LoadListFromFile(g_RecentItemsExclusionsApp.strListSavePath, vMatchPhrases);
 		g_PruningThread.Start(vMatchPhrases);
 		return 0;
 	}
@@ -283,9 +288,63 @@ LRESULT CALLBACK TrayWndProc(HWND hWnd, UINT nMessage, WPARAM wParam, LPARAM lPa
 	return 0;
 }
 
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nShowCmd)
+int main(const int argc, char** argv)
 {
 	g_RecentItemsExclusionsApp.hInst = g_RecentItemsExclusionsApp.hResourceModule = GetModuleHandle(nullptr);
+
+	po::options_description desc("Options");
+	desc.add_options()
+		("help,h", "show help")
+		("close,c", "Close running instances.")
+		("install,i", "Run install tasks.")
+		("uninstall,u", "Run uninstall tasks.");
+
+	po::variables_map vm;
+	po::store(po::command_line_parser(argc, argv).options(desc).run(), vm);
+	po::notify(vm);
+	if (vm.count("help"))
+	{
+		std::cerr << desc << "\n";
+		return 1;
+	}
+	else if (vm.count("install"))
+	{
+		// TODO: add to startup 
+		return 1;
+	}
+	else if (vm.count("uninstall"))
+	{
+		// TODO: remove from startup folder
+		return 1;
+	}
+	else if (vm.count("close"))
+	{
+		HANDLE hEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, g_RecentItemsExclusionsApp.EXIT_SIGNAL_EVENT_NAME);
+		if (hEvent)
+		{
+			SetEvent(hEvent);
+			CloseHandle(hEvent);
+			// wait until handle disappears to know when existing instances close, for a max of 10 seconds
+			for (int i = 0; i < 10; i++)
+			{
+				hEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, g_RecentItemsExclusionsApp.EXIT_SIGNAL_EVENT_NAME);
+				if (hEvent)
+				{
+					CloseHandle(hEvent);
+					Sleep(1000);
+				}
+				else
+				{
+					// event gone, now give it an extra 500ms to let a closing instance fully close
+					// TODO: this is not the ideal wait mechanism
+					Sleep(500);
+					break;
+				}
+			}
+			return 0;
+		}
+		return 1;
+	}
 
 	// initialize common controls
 	INITCOMMONCONTROLSEX icex;
@@ -322,4 +381,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 	}
 
 	return 0;
+}
+
+int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, char*, int nShowCmd)
+{
+	return main(__argc, __argv);
 }

@@ -26,7 +26,7 @@ public:
 
 		hExitEvent = CreateEvent(nullptr,
 			TRUE, // manual reset for exit event, since we set once and have multiple listeners
-			FALSE, nullptr);
+			FALSE, EXIT_SIGNAL_EVENT_NAME);
 	}
 	~RecentItemsExclusions()
 	{
@@ -45,6 +45,7 @@ public:
 
 	ListSerializer ListSerializer;
 	std::wstring strListSavePath;
+	const WCHAR* EXIT_SIGNAL_EVENT_NAME = L"{4ceb4f3d-9838-4153-a6a5-3f004a563133}";
 	const WCHAR* SYSTRAY_WINDOW_CLASS_NAME = L"RecentItemsExclusions_TrayClass";
 	const WCHAR* SYSTRAY_WINDOW_NAME = L"RecentItemsExclusions_TrayWnd";
 	const static UINT UWM_TRAY = WM_USER + 1;
