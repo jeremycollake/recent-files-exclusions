@@ -58,7 +58,7 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 		SetMenu(hDlg, LoadMenu(g_RecentItemsExclusionsApp.hResourceModule, MAKEINTRESOURCE(IDR_MENU_MAIN)));
 
 		std::vector<std::wstring> vStrings;
-		if (g_RecentItemsExclusionsApp.ListSerializer.LoadListFromFile(g_RecentItemsExclusionsApp.g_strListSavePath, vStrings) > 0)
+		if (g_RecentItemsExclusionsApp.ListSerializer.LoadListFromFile(g_RecentItemsExclusionsApp.strListSavePath, vStrings) > 0)
 		{
 			SetListInDialog(GetDlgItem(hDlg, IDC_LIST_STRINGS), vStrings);
 		}
@@ -107,7 +107,7 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 		{
 			std::vector<std::wstring> vStrings;
 			GetListFromDialog(GetDlgItem(hDlg, IDC_LIST_STRINGS), vStrings);
-			g_RecentItemsExclusionsApp.ListSerializer.SaveListToFile(g_RecentItemsExclusionsApp.g_strListSavePath, vStrings);
+			g_RecentItemsExclusionsApp.ListSerializer.SaveListToFile(g_RecentItemsExclusionsApp.strListSavePath, vStrings);
 			EndDialog(hDlg, 0);
 			return TRUE;
 		}

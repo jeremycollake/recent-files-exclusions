@@ -13,9 +13,6 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Installer">
-      <UniqueIdentifier>{bfeb6bbf-b564-4eec-b99b-d181f56732ce}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RecentItemsExclusions.cpp">
@@ -71,9 +68,6 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <None Include="recentitemspruner.nsi">
-      <Filter>Installer</Filter>
-    </None>
     <None Include="..\..\..\pl\version.rc2">
       <Filter>Resource Files</Filter>
     </None>

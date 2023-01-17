@@ -1,0 +1,4 @@
+LangString SecCore ${LANG_ENGLISH} "Recent Items Exclusions"
+LangString DESC_SecCore ${LANG_ENGLISH} "Recent Items Exclusions app modules"
+LangString SecLaunch ${LANG_ENGLISH} "Launch Recent Items Exclusions"
+LangString DESC_SecLaunch ${LANG_ENGLISH} "Launch Recent Items Exclusions after installation."

@@ -2,25 +2,23 @@
 #include <WinInet.h>
 #include <shellapi.h>
 #include <thread>
-
 #include "../libcommon/libcommon/ResourceHelpers.h"
 #include "../libcommon/libcommon/ProductOptions.h"
-
 #include "UpdateCheckFuncs.h"
 #include "RecentItemsExclusions.h"
 #include "SignatureVerifier.h"
 
 extern RecentItemsExclusions g_RecentItemsExclusionsApp;	// app globals and config
 
-DWORD FetchLatestVersionNumberAsync(const HANDLE hEventComplete, _Out_ std::wstring* pwstrResult)
+DWORD FetchLatestVersionNumberAsync(_Out_ std::wstring* pwstrResult, const HANDLE hEventComplete)
 {
-	std::thread checkThread(FetchLatestVersionNumber, hEventComplete, pwstrResult);
+	std::thread checkThread(FetchLatestVersionNumber, pwstrResult, hEventComplete);
 	checkThread.detach();	
 	return GetThreadId(checkThread.native_handle());
 }
 
 // use FetchLatestVersionNumberAsync to spawn and detach this thread
-DWORD FetchLatestVersionNumber(const HANDLE hEventComplete, _Out_ std::wstring* pwstrResult)
+DWORD FetchLatestVersionNumber(_Out_ std::wstring* pwstrResult, const HANDLE hEventComplete)
 {	
 	pwstrResult->clear();
 
@@ -48,19 +46,21 @@ DWORD FetchLatestVersionNumber(const HANDLE hEventComplete, _Out_ std::wstring* 
 		}
 		return 1;
 	}
-
-	// set global boolean to TRUE and populate license text
+	
 	std::wstring strVersion = convert_to_wstring(pszVersionBuffer);
 
 	delete pszVersionBuffer;
 	pszVersionBuffer = nullptr;
 
 	// basic check for bad result
-	if (strVersion.length() > 64
+	int nFirstNewline = strVersion.find_first_of(L"\r\n");
+	if (strVersion.length() < 3
 		||
-		strVersion.length() < 3
+		nFirstNewline == std::wstring::npos
 		||
-		strVersion.find(L".") == std::wstring::npos)
+		strVersion.find(L".") == std::wstring::npos
+		||
+		strVersion.find(L"bitsum_updatevalidsig") == std::wstring::npos)
 	{
 		DEBUG_PRINT(L"Updater bad result");
 		if (hEventComplete)
@@ -69,8 +69,8 @@ DWORD FetchLatestVersionNumber(const HANDLE hEventComplete, _Out_ std::wstring* 
 		}
 		return 0;
 	}
-
-	*pwstrResult = strVersion;
+	
+	*pwstrResult = strVersion.substr(0, nFirstNewline);
 
 	if (hEventComplete)
 	{
@@ -78,6 +78,104 @@ DWORD FetchLatestVersionNumber(const HANDLE hEventComplete, _Out_ std::wstring* 
 	}
 	return 0;
 }
+
+bool DownloadAndApplyUpdate()
+{
+	CString csTargetSavePath;
+	WCHAR wszTemp[4096] = { 0 };
+
+	GetTempPath(_countof(wszTemp), wszTemp);
+	csTargetSavePath.Format(L"%s\\%s", wszTemp, L"bitsum");
+	CreateDirectory(csTargetSavePath, NULL);
+	csTargetSavePath.Format(L"%s\\%s\\%s", wszTemp, L"bitsum", g_RecentItemsExclusionsApp.INSTALLER_FILENAME);		// our subfolder to adhere to CryptoPrevent compliance
+
+	DEBUG_PRINT(L"Download save path: %s", csTargetSavePath);
+
+	char* pBuffer = NULL;		// dynamically allocated and retunred by DownloadFile if success
+	int nDownloadSizeInBytes = 0;
+
+	CString csDownloadUrl = g_RecentItemsExclusionsApp.INSTALLER_FILENAME;
+	if (g_RecentItemsExclusionsApp.AreBetaUpdatesEnabled())
+	{
+		csDownloadUrl += L"beta/";
+	}
+	if (false == DownloadBinaryFile(PRODUCT_USER_AGENT, csDownloadUrl, &pBuffer, &nDownloadSizeInBytes) || NULL == pBuffer || nDownloadSizeInBytes <= g_RecentItemsExclusionsApp.MINIMUM_VALID_INSTALLER_SIZE)
+	{
+		DEBUG_PRINT(L"ERROR downloading file");
+		return false;
+	}
+	// else continue
+	// save buffer to file
+	HANDLE hFile = CreateFile(csTargetSavePath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (INVALID_HANDLE_VALUE == hFile)
+	{
+		DEBUG_PRINT(L"ERROR creating file");
+		return false;
+	}
+	DWORD dwBytesWritten = 0;
+	if (FALSE == WriteFile(hFile, pBuffer, nDownloadSizeInBytes, &dwBytesWritten, NULL) || dwBytesWritten != nDownloadSizeInBytes)
+	{
+		DEBUG_PRINT(L"ERROR writing file");
+		CloseHandle(hFile);
+		return false;
+	}
+	CloseHandle(hFile);
+
+	// verify digital signature
+	SignatureVerifier SignVerifier;
+	LONG lStatus = SignVerifier.VerifyEmbeddedSignature(csTargetSavePath);
+	if (lStatus != ERROR_SUCCESS)
+	{
+		DEBUG_PRINT(L"ERROR validating signature of update package");
+		ATL::CString csTemp;
+		std::wstring strErrorMsg = SignVerifier.TranslateWinVerifySigningStatusToMessage(lStatus);
+		csTemp.Format(ResourceHelpers::LoadResourceString(g_RecentItemsExclusionsApp.hResourceModule, IDS_UPDATE_SIGNED_FAILURE_MESSAGE_FMT).c_str(), strErrorMsg.c_str());
+		DEBUG_PRINT(csTemp);
+		if (MessageBox(NULL, csTemp, PRODUCT_NAME, MB_ICONWARNING | MB_APPLMODAL | MB_YESNO) == IDYES)
+		{
+			ShellExecute(NULL, NULL, L"https://bitsum.com/recentitemspruner/?prod=rie&update_error_sig", NULL, NULL, SW_SHOWNORMAL);
+		}
+		return false;
+	}
+
+	DEBUG_PRINT(L"Launching installer ...");
+
+	// create command line arguments with arg0 quote encapsulated and /S switch for silent install
+	CString csArgs;
+	csArgs.Format(L"\"%s\" /S", csTargetSavePath);
+
+	STARTUPINFO sInfo;
+	PROCESS_INFORMATION pInfo;
+	memset(&sInfo, 0, sizeof(sInfo));
+	memset(&pInfo, 0, sizeof(pInfo));
+
+	DEBUG_PRINT(L"Launching %s -- command line: %s", csTargetSavePath, csArgs);
+
+	// do NOT quote encapsulate param 1 of CreateProcess
+	BOOL bR = CreateProcess(csTargetSavePath,
+		csArgs.GetBuffer(),
+		NULL,           // Process handle not inheritable
+		NULL,           // Thread handle not inheritable
+		FALSE,          // Set handle inheritance to FALSE
+		0,              // No creation flags
+		NULL,           // Use parent's environment block
+		NULL,           // Use parent's starting directory 
+		&sInfo,            // Pointer to STARTUPINFO structure
+		&pInfo);           // Pointer to PROCESS_INFORMATION structure
+	HANDLE hProcess = pInfo.hProcess;
+	if (FALSE == bR || NULL == hProcess)
+	{
+		DEBUG_PRINT(L"ERROR Launching %s", csTargetSavePath);
+	}
+	if (hProcess)
+	{
+		CloseHandle(hProcess);
+	}
+	
+	// caller is now expected to exit, though installer should terminate the process anyway -- so is optional
+	return bR ? true : false;
+}
+
 
 size_t AddNullTerminatorToBuffer(char** ppBuffer, unsigned int nbufSize)
 {
@@ -179,102 +277,6 @@ bool DownloadBinaryFile(const WCHAR* pwszUserAgent,
 	}
 
 	return true;
-}
-
-bool DownloadAndApplyUpdate()
-{
-	CString csTargetSavePath;
-	WCHAR wszTemp[4096] = { 0 };
-
-	GetTempPath(_countof(wszTemp), wszTemp);
-	csTargetSavePath.Format(L"%s\\%s", wszTemp, L"bitsum");
-	CreateDirectory(csTargetSavePath, NULL);
-	csTargetSavePath.Format(L"%s\\%s\\%s", wszTemp, L"bitsum", g_RecentItemsExclusionsApp.INSTALLER_FILENAME);		// our subfolder to adhere to CryptoPrevent compliance
-
-	DEBUG_PRINT(L"Download save path: %s", csTargetSavePath);
-
-	char* pBuffer = NULL;		// dynamically allocated and retunred by DownloadFile if success
-	int nDownloadSizeInBytes = 0;
-
-	CString csDownloadUrl = g_RecentItemsExclusionsApp.INSTALLER_FILENAME;
-	if (g_RecentItemsExclusionsApp.AreBetaUpdatesEnabled())
-	{
-		csDownloadUrl += L"beta/";
-	}
-	if (false == DownloadBinaryFile(PRODUCT_USER_AGENT, csDownloadUrl, &pBuffer, &nDownloadSizeInBytes) || NULL == pBuffer || nDownloadSizeInBytes <= g_RecentItemsExclusionsApp.MINIMUM_VALID_INSTALLER_SIZE)
-	{
-		DEBUG_PRINT(L"ERROR downloading file");
-		return false;
-	}
-	// else continue
-	// save buffer to file
-	HANDLE hFile = CreateFile(csTargetSavePath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-	if (INVALID_HANDLE_VALUE == hFile)
-	{
-		DEBUG_PRINT(L"ERROR creating file");
-		return false;
-	}
-	DWORD dwBytesWritten = 0;
-	if (FALSE == WriteFile(hFile, pBuffer, nDownloadSizeInBytes, &dwBytesWritten, NULL) || dwBytesWritten != nDownloadSizeInBytes)
-	{
-		DEBUG_PRINT(L"ERROR writing file");
-		CloseHandle(hFile);
-		return false;
-	}
-	CloseHandle(hFile);
-
-	// verify digital signature
-	SignatureVerifier SignVerifier;
-	LONG lStatus = SignVerifier.VerifyEmbeddedSignature(csTargetSavePath);
-	if (lStatus != ERROR_SUCCESS)
-	{
-		DEBUG_PRINT(L"ERROR validating signature of update package");
-		ATL::CString csTemp;
-		std::wstring strErrorMsg = SignVerifier.TranslateWinVerifySigningStatusToMessage(lStatus);
-		csTemp.Format(ResourceHelpers::LoadResourceString(g_RecentItemsExclusionsApp.hResourceModule, IDS_UPDATE_SIGNED_FAILURE_MESSAGE_FMT).c_str(), strErrorMsg.c_str());
-		DEBUG_PRINT(csTemp);
-		if (MessageBox(NULL, csTemp, PRODUCT_NAME, MB_ICONWARNING | MB_APPLMODAL | MB_YESNO) == IDYES)
-		{
-			ShellExecute(NULL, NULL, L"https://bitsum.com/recentitemspruner/?prod=rie&update_error_sig", NULL, NULL, SW_SHOWNORMAL);
-		}
-		return false;
-	}
-
-	DEBUG_PRINT(L"Launching installer ...");
-
-	// create command line arguments with arg0 quote encapsulated and /S switch for silent install
-	CString csArgs;
-	csArgs.Format(L"\"%s\" /S", csTargetSavePath);
-
-	STARTUPINFO sInfo;
-	PROCESS_INFORMATION pInfo;
-	memset(&sInfo, 0, sizeof(sInfo));
-	memset(&pInfo, 0, sizeof(pInfo));
-
-	DEBUG_PRINT(L"Launching %s -- command line: %s", csTargetSavePath, csArgs);
-
-	// do NOT quote encapsulate param 1 of CreateProcess
-	BOOL bR = CreateProcess(csTargetSavePath,
-		csArgs.GetBuffer(),
-		NULL,           // Process handle not inheritable
-		NULL,           // Thread handle not inheritable
-		FALSE,          // Set handle inheritance to FALSE
-		0,              // No creation flags
-		NULL,           // Use parent's environment block
-		NULL,           // Use parent's starting directory 
-		&sInfo,            // Pointer to STARTUPINFO structure
-		&pInfo);           // Pointer to PROCESS_INFORMATION structure
-	HANDLE hProcess = pInfo.hProcess;
-	if (FALSE == bR || NULL == hProcess)
-	{
-		DEBUG_PRINT(L"ERROR Launching %s", csTargetSavePath);
-	}
-	if (hProcess)
-	{
-		CloseHandle(hProcess);
-	}
-	// caller is now expected to exit, though installer should terminate the process anyway -- so is optional
-	return bR ? true : false;
 }
 
 unsigned long TextVersionToULONG(const WCHAR* pwszTextVersion)

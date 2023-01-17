@@ -1,15 +1,12 @@
-/*
-* Part of the CorePrio project
-* (c)2019 Jeremy Collake <jeremy@bitsum.com>, Bitsum LLC
-* https://bitsum.com/portfolio/coreprio
-* See LICENSE.TXT
-*/
 #pragma once
 
 #include <windows.h>
 
-DWORD FetchLatestVersionNumberAsync(const HANDLE hEventComplete, _Out_ std::wstring* pwstrResult);
-DWORD WINAPI FetchLatestVersionNumber(const HANDLE hEventComplete, _Out_ std::wstring* pwstrResult);
+#pragma comment (lib, "wininet")
+
+DWORD FetchLatestVersionNumberAsync(_Out_ std::wstring* pwstrResult, const HANDLE hEventComplete);
+// use FetchLatestVersionNumberAsync to spawn and detach this thread
+DWORD FetchLatestVersionNumber(_Out_ std::wstring* pwstrResult, const HANDLE hEventComplete);
 
 bool DownloadAndApplyUpdate();
 

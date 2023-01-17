@@ -24,7 +24,9 @@ public:
 		CreateDirectory(strListSavePath.c_str(), NULL);
 		strListSavePath += L"\\RecentItemsExclusions.txt";
 
-		hExitEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);		
+		hExitEvent = CreateEvent(nullptr,
+			TRUE, // manual reset for exit event, since we set once and have multiple listeners
+			FALSE, nullptr);
 	}
 	~RecentItemsExclusions()
 	{
@@ -33,12 +35,13 @@ public:
 			CloseHandle(hExitEvent);
 		}
 	}
-	const WCHAR* INSTALLER_FILENAME = L"RecentItemsPrunerSetup.exe";
+	const WCHAR* INSTALLER_FILENAME = L"RecentItemsExclusionsSetup.exe";
 	const static unsigned long MINIMUM_VALID_INSTALLER_SIZE = 16 * 1024;
 	const WCHAR* UPDATE_CHECKS_DISABLED_VALUENAME = L"UpdateChecksDisabled";	// inverse so we default to enabled
 	const WCHAR* BETA_UPDATES_VALUENAME = L"BetaUpdates";
-	const WCHAR* UPDATE_CHECK_URL = L"https://update.bitsum.com/versioninfo/recentitemspruner/";
-	const static unsigned long nUpdateCheckInterval = 1000 * 60 * 60 * 24;	// 1 day
+	const WCHAR* UPDATE_CHECK_URL = L"https://update.bitsum.com/versioninfo/recentitemsexclusions/";	
+	const static unsigned long UPDATE_CHECK_INTERVAL_MS = 1000 * 60 * 60 * 24;	// 1 day
+	std::wstring strFetechedVersionAvailableForDownload;
 
 	ListSerializer ListSerializer;
 	std::wstring strListSavePath;
@@ -48,11 +51,13 @@ public:
 	const static UINT UWM_REGISTER_TRAY_ICON = WM_USER + 2;
 	const static UINT UWM_START_PRUNING_THREAD = WM_USER + 3;
 	const static UINT UWM_STOP_PRUNING_THREAD = WM_USER + 4;
+	const static UINT UWM_NEW_VERSION_AVAILABLE = WM_USER + 5;
+	const static UINT UWM_START_UPDATE_CHECK_THREAD = WM_USER + 6;
 
 	HINSTANCE hInst = NULL;
 	HMODULE hResourceModule = NULL;
 	HWND hWndSysTray = NULL;
-	HANDLE hExitEvent;	
+	HANDLE hExitEvent;
 
 	void SetUpdateChecksEnabled(const bool bVal)
 	{

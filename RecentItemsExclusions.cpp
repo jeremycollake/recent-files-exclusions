@@ -21,12 +21,33 @@
 RecentItemsExclusions g_RecentItemsExclusionsApp;	// app globals and config
 PruningThread g_PruningThread;
 
+// UpdateCheckThread
+//  - periodically checks for updates
 DWORD WINAPI UpdateCheckThread(LPVOID lpv)
 {
-	//
-	// TODO code this thread
-	// g_RecentItemsExclusionsApp.hExitEvent;
-	//	
+	DEBUG_PRINT(L"UpdateCheckThread ends");
+	_ASSERT(g_RecentItemsExclusionsApp.hExitEvent);
+	// do one check when thread starts
+	do
+	{
+		DEBUG_PRINT(L"UpdateCheckThread checking for update...");
+		std::wstring strLatestVer;
+		FetchLatestVersionNumber(&strLatestVer, NULL);
+		if (!strLatestVer.empty())
+		{
+			g_RecentItemsExclusionsApp.strFetechedVersionAvailableForDownload = strLatestVer;
+			DEBUG_PRINT(L"Fetched latest version is %s", strLatestVer.c_str());
+			// check if available version is newer than current, and if so, notify user
+			if (TextVersionToULONG(strLatestVer.c_str()) > TextVersionToULONG(PRODUCT_VERSION))
+			{
+				DEBUG_PRINT(L"New version available!");
+				// notify user				
+				PostMessage(g_RecentItemsExclusionsApp.hWndSysTray, RecentItemsExclusions::UWM_NEW_VERSION_AVAILABLE, 0, 0);
+			}
+		}
+	} while (WaitForSingleObject(g_RecentItemsExclusionsApp.hExitEvent, g_RecentItemsExclusionsApp.UPDATE_CHECK_INTERVAL_MS) != WAIT_OBJECT_0);
+	DEBUG_PRINT(L"UpdateCheckThread ends");
+	return 0;
 }
 
 bool CreateOrReinitializeTrayWindow(const bool bFirstTimeCreation)
@@ -77,12 +98,14 @@ LRESULT CALLBACK TrayWndProc(HWND hWnd, UINT nMessage, WPARAM wParam, LPARAM lPa
 {
 	static HICON s_hAppIcon = NULL;
 	static UINT s_uTaskbarRestartMessageId = 0;
+	static bool bNotificationWaiting_DoUpdate = false;
 	switch (nMessage)
 	{
 	case WM_CREATE:
 		// register to get taskbar recreation messages
 		s_uTaskbarRestartMessageId = RegisterWindowMessage(L"TaskbarCreated");
-		s_hAppIcon = LoadIcon(g_RecentItemsExclusionsApp.hInst, MAKEINTRESOURCE(IDI_ICON1));
+		s_hAppIcon = LoadIcon(g_RecentItemsExclusionsApp.hInst, MAKEINTRESOURCE(IDI_ICON1));	
+		PostMessage(hWnd, RecentItemsExclusions::UWM_START_UPDATE_CHECK_THREAD, 0, 0);
 		PostMessage(hWnd, RecentItemsExclusions::UWM_START_PRUNING_THREAD, 0, 0);
 		return 0;
 	case WM_DESTROY:
@@ -100,10 +123,18 @@ LRESULT CALLBACK TrayWndProc(HWND hWnd, UINT nMessage, WPARAM wParam, LPARAM lPa
 	case RecentItemsExclusions::UWM_START_PRUNING_THREAD:
 	{
 		g_PruningThread.Stop();		// ensure stopped
-		std::vector<std::wstring> vMatchPhrases;
-		// temp testing
-		vMatchPhrases.push_back(L"prI");
+		std::vector<std::wstring> vMatchPhrases;		
 		g_PruningThread.Start(vMatchPhrases);
+		return 0;
+	}
+	case RecentItemsExclusions::UWM_START_UPDATE_CHECK_THREAD:
+	{
+		DWORD dwTID = 0;
+		HANDLE hThread = CreateThread(NULL, 0, UpdateCheckThread, NULL, 0, &dwTID);
+		if (hThread)
+		{
+			CloseHandle(hThread);
+		}
 		return 0;
 	}
 	case RecentItemsExclusions::UWM_STOP_PRUNING_THREAD:
@@ -146,13 +177,42 @@ LRESULT CALLBACK TrayWndProc(HWND hWnd, UINT nMessage, WPARAM wParam, LPARAM lPa
 		Shell_NotifyIcon(NIM_SETVERSION, &ndata);
 	}
 	break;
+	case RecentItemsExclusions::UWM_NEW_VERSION_AVAILABLE:
+	{
+		DEBUG_PRINT(L"Received UWM_NEW_VERSION_AVAILABLE, notifying user...");
+		NOTIFYICONDATA ndata = {};
+		memset(&ndata, 0, sizeof(ndata));
+		ndata.cbSize = sizeof(NOTIFYICONDATA);
+		ndata.hWnd = hWnd;
+		ndata.uID = GetCurrentProcessId();	// our tray window ID will be our PID;
+		ndata.uFlags = NIF_INFO;
+		ndata.uTimeout = 10000;
+		wcscpy_s(ndata.szInfoTitle, _countof(ndata.szInfoTitle) - 1, L"Update for " PRODUCT_NAME " is available");
+		wsprintf(ndata.szInfo, L"Click here update.");
+		Shell_NotifyIcon(NIM_MODIFY, &ndata);
+		bNotificationWaiting_DoUpdate = true;
+	}
+	break;
 	case RecentItemsExclusions::UWM_TRAY:
 		switch (lParam)
 		{
 		case NIN_BALLOONHIDE:
-		case NIN_BALLOONTIMEOUT:
+			DEBUG_PRINT(L"NIN_BALLOONHIDE");
+			bNotificationWaiting_DoUpdate = false;
 			break;
-		case NIN_BALLOONUSERCLICK:
+		case NIN_BALLOONTIMEOUT:
+			DEBUG_PRINT(L"NIN_BALLOONTIMEOUT");
+			bNotificationWaiting_DoUpdate = false;
+			break;
+		case NIN_BALLOONUSERCLICK:  // XP and above
+			// clicked the balloon we last showed ... 	
+			DEBUG_PRINT(L"NIM_BALLOONUSERCLICK");
+			if (true == bNotificationWaiting_DoUpdate)
+			{
+				// calling this will cause the app to exit when downloaded installer is run
+				DownloadAndApplyUpdate();
+				bNotificationWaiting_DoUpdate = false;
+			}
 			break;
 		case WM_LBUTTONDBLCLK:
 		case WM_LBUTTONUP:
@@ -161,7 +221,7 @@ LRESULT CALLBACK TrayWndProc(HWND hWnd, UINT nMessage, WPARAM wParam, LPARAM lPa
 				// reload list and restart thread
 				// TODO: create watcher thread on config list in case externally changed
 				std::vector<std::wstring> vStrings;
-				g_RecentItemsExclusionsApp.ListSerializer.LoadListFromFile(g_RecentItemsExclusionsApp.g_strListSavePath, vStrings);
+				g_RecentItemsExclusionsApp.ListSerializer.LoadListFromFile(g_RecentItemsExclusionsApp.strListSavePath, vStrings);
 				SendMessage(hWnd, RecentItemsExclusions::UWM_START_PRUNING_THREAD, 0, 0);
 			}
 			break;
