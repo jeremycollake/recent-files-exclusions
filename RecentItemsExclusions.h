@@ -31,25 +31,33 @@ public:
 
 		hExternalExitSignal = CreateEvent(nullptr,
 			TRUE, // manual reset for exit events, since we set once and have multiple listeners
-			FALSE, EXTERNAL_EXIT_SIGNAL_EVENT_NAME);				
+			FALSE, EXTERNAL_EXIT_SIGNAL_EVENT_NAME);
 		_ASSERT(hExternalExitSignal);
+
+		hPruningThreadStatusChangedEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+		_ASSERT(hPruningThreadStatusChangedEvent);		
 	}
 	~RecentItemsExclusions()
 	{
-		if (hExitEvent)
+		if (hPruningThreadStatusChangedEvent)
 		{
-			CloseHandle(hExitEvent);
-		}
+			CloseHandle(hPruningThreadStatusChangedEvent);
+		}		
 		if (hExternalExitSignal)
 		{
 			CloseHandle(hExternalExitSignal);
 		}
-	}
+		if (hExitEvent)
+		{
+			CloseHandle(hExitEvent);
+		}
+	}	
+
 	const WCHAR* INSTALLER_FILENAME = L"RecentItemsExclusionsSetup.exe";
 	const static unsigned long MINIMUM_VALID_INSTALLER_SIZE = 16 * 1024;
 	const WCHAR* UPDATE_CHECKS_DISABLED_VALUENAME = L"UpdateChecksDisabled";	// inverse so we default to enabled
 	const WCHAR* BETA_UPDATES_VALUENAME = L"BetaUpdates";
-	const WCHAR* UPDATE_CHECK_URL = L"https://update.bitsum.com/versioninfo/recentitemsexclusions/";	
+	const WCHAR* UPDATE_CHECK_URL = L"https://update.bitsum.com/versioninfo/recentitemsexclusions/";
 	const static unsigned long UPDATE_CHECK_INTERVAL_MS = 1000 * 60 * 60 * 24;	// 1 day
 	std::wstring strFetechedVersionAvailableForDownload;
 
@@ -65,6 +73,8 @@ public:
 	const static UINT UWM_NEW_VERSION_AVAILABLE = WM_USER + 5;
 	const static UINT UWM_START_UPDATE_CHECK_THREAD = WM_USER + 6;
 	const static UINT UWM_EXIT = WM_USER + 7;
+	const static UINT UWM_OPEN_LIST_DIALOG = WM_USER + 8;
+	const static UINT UWM_STATUS_CHANGED = WM_USER + 9;
 
 	HINSTANCE hInst = NULL;
 	HMODULE hResourceModule = NULL;
@@ -72,6 +82,11 @@ public:
 	HWND hWndListDialog = NULL;
 	HANDLE hExitEvent;
 	HANDLE hExternalExitSignal;
+	HANDLE hPruningThreadStatusChangedEvent;
+	
+	const WCHAR* TOTAL_ITEMS_PRUNED_VALUENAME = L"TotalItemsPruned";
+	const WCHAR* ITEMS_PRUNED_TODAY_VALUENAME = L"ItemsPrunedToday";
+	const WCHAR* LAST_DAY_VALUENAME = L"LastDay";
 
 	void SetUpdateChecksEnabled(const bool bVal)
 	{
@@ -118,5 +133,6 @@ public:
 	}
 };
 
+bool BringExistingInstanceToForeground();
 bool CreateOrReinitializeTrayWindow(const bool bFirstTimeCreation = true);
 LRESULT CALLBACK TrayWndProc(HWND hWnd, UINT nMessage, WPARAM wParam, LPARAM lParam);

@@ -72,6 +72,9 @@
     <Image Include="icon1.ico">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="images\icon1.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\pl\version.rc2">

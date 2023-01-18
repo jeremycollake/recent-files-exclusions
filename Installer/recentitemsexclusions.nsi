@@ -15,7 +15,7 @@ SetCompressorDictSize 32
 !define Version_Major "0"
 !define Version_Minor "1"
 
-;!define beta_version
+!define beta_version
 
 !ifdef beta_version    
     BrandingText "RecentItemsExclusions - ${Version_Text} BETA - Built on ${__DATE__} at ${__TIME__} - (c)2023 Bitsum LLC"    
@@ -32,8 +32,8 @@ RequestExecutionLevel admin
 ; The name of the installer
 Name "RecentItemsExclusions"	
 
-Icon "..\icon1.ico"					; must contain 32x32@16bpp icon
-!define MUI_ICON "..\icon1.ico"		; must contain 32x32@16bpp icon
+Icon "..\images\icon1.ico"					; must contain 32x32@16bpp icon
+!define MUI_ICON "..\..\images\icon1.ico"		; must contain 32x32@16bpp icon
 ;!define MUI_HEADERIMAGE_BITMAP "..\images\RecentItemsExclusions.bmp"
 
 XPStyle On

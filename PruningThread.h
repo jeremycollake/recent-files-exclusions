@@ -1,9 +1,93 @@
 #pragma once
+#include <algorithm>
 #include <thread>
 #include <vector>
 #include <string>
 #include <windows.h>
+#include <Shlobj.h>
 #include "DebugOut.h"
+#include "../libcommon/libcommon/ResourceHelpers.h"
+#include "../libcommon/libcommon/ProductOptions.h"
+#include "RecentItemsExclusions.h"
+#include "versioninfo.h"
+
+extern RecentItemsExclusions g_RecentItemsExclusionsApp;	// app globals and config
+
+class PruningStatus
+{
+	std::vector<HANDLE> m_vhListeningEventsForStatusChange;	// clients register these to know when the status changes
+public:
+	enum PruneThreadState { PruneThreadState_Stopped, PruneThreadState_Monitoring, PruneThreadState_Pruning, PruneThreadState_Error };
+	PruneThreadState m_pruneThreadState = PruneThreadState_Stopped;
+	std::wstring GetStateString()
+	{
+		switch (m_pruneThreadState)
+		{
+		case PruneThreadState_Stopped:
+			return L"Stopped";
+		case PruneThreadState_Monitoring:
+			return L"Monitoring";
+		case PruneThreadState_Pruning:
+			return L"Pruning";
+		case PruneThreadState_Error:
+			return L"Error";
+		default:
+			return L"Unknown";
+		}
+	}
+
+	unsigned long m_nTotalItemsLastScanned;
+
+	void AddListeningEvent(HANDLE hEvent)
+	{
+		m_vhListeningEventsForStatusChange.push_back(hEvent);
+	}
+	void NotifyAllListenersOfChange()
+	{
+		for (auto h : m_vhListeningEventsForStatusChange)
+		{
+			SetEvent(h);
+		}
+	}
+	unsigned int GetTotalItemsPrunedCount()
+	{
+		ProductOptions prodOptions(HKEY_CURRENT_USER, PRODUCT_NAME);
+		unsigned int nCount = 0;
+		prodOptions.get_value(g_RecentItemsExclusionsApp.TOTAL_ITEMS_PRUNED_VALUENAME, nCount);
+		return nCount;
+	}
+	unsigned int SetTotalItemsPrunedCount(unsigned int nCount)
+	{
+		ProductOptions prodOptions(HKEY_CURRENT_USER, PRODUCT_NAME);
+		prodOptions.set_value(g_RecentItemsExclusionsApp.TOTAL_ITEMS_PRUNED_VALUENAME, nCount);
+		return nCount;
+	}
+	int GetItemsPrunedTodayCount()
+	{
+		ProductOptions prodOptions(HKEY_CURRENT_USER, PRODUCT_NAME);
+		// check if day is different than last recorded. If so, reset counter.
+		SYSTEMTIME sysTime = {};
+		GetSystemTime(&sysTime);
+		unsigned long nTodayEncoded = sysTime.wYear * 10000 + sysTime.wMonth * 100 + sysTime.wDay;
+		unsigned long nLastDayEncoded = 0;
+		prodOptions.get_value(g_RecentItemsExclusionsApp.LAST_DAY_VALUENAME, nLastDayEncoded);
+		if (nLastDayEncoded != nTodayEncoded)
+		{
+			DEBUG_PRINT(L"Day changed, clearing today's count.");
+			prodOptions.set_value(g_RecentItemsExclusionsApp.LAST_DAY_VALUENAME, nTodayEncoded);
+			SetItemsPrunedTodayCount(0);
+		}
+		unsigned int nCount = 0;
+		prodOptions.get_value(g_RecentItemsExclusionsApp.ITEMS_PRUNED_TODAY_VALUENAME, nCount);
+		return nCount;
+	}
+	unsigned long SetItemsPrunedTodayCount(unsigned long nCount)
+	{
+		ProductOptions prodOptions(HKEY_CURRENT_USER, PRODUCT_NAME);
+		prodOptions.set_value(g_RecentItemsExclusionsApp.ITEMS_PRUNED_TODAY_VALUENAME, nCount);
+		return nCount;
+	}
+};
 
 class PruningThread
 {
@@ -17,6 +101,7 @@ public:
 	{
 		Stop();
 	}
+	PruningStatus m_pruningStatus;
 	bool IsStarted()
 	{
 		return (m_hExitEvent != NULL);
@@ -46,7 +131,7 @@ private:
 		DEBUG_PRINT(L"FilesystemPruningThread begin");
 		std::wstring pathRecentItems;
 		{
-			WCHAR* pwszPath = nullptr;
+			WCHAR* pwszPath = nullptr;			
 			if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Recent, 0, NULL, &pwszPath)))
 			{
 				pathRecentItems = pwszPath;
@@ -116,7 +201,7 @@ private:
 		FindCloseChangeNotification(hFindHandle);
 		DEBUG_PRINT(L"FilesystemPruningThread end");
 		return 0;
-	}	
+	}
 	bool DoesTextExistInFile(const std::wstring& filepath, const std::vector<std::wstring>& vSearchPatterns)
 	{
 		// read file into buffer
@@ -153,6 +238,12 @@ private:
 	int PruneFilesystem(const std::vector<std::wstring>& vPaths, const std::vector<std::wstring>& vSearchPatterns)
 	{
 		DEBUG_PRINT(L"PruneFilesystem");
+
+		unsigned int nScannedCount = 0, nDeletedCount = 0;
+
+		m_pruningStatus.m_pruneThreadState = PruningStatus::PruneThreadState_Pruning;
+		m_pruningStatus.NotifyAllListenersOfChange();
+		
 		for (auto path : vPaths)
 		{
 			WIN32_FIND_DATA findData = {};
@@ -166,7 +257,7 @@ private:
 			do
 			{
 				if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
-				{					
+				{
 					std::wstring filePath = path + L"\\" + findData.cFileName;
 					if (DoesTextExistInFile(filePath, vSearchPatterns))
 					{
@@ -175,11 +266,23 @@ private:
 						{
 							DEBUG_PRINT(L"ERROR: Deleting file %s", filePath.c_str());
 						}
+						else
+						{
+							nDeletedCount++;
+						}
 					}
 				}
+				nScannedCount++;
 			} while (FindNextFile(hFind, &findData));
 			FindClose(hFind);
 		}
+
+		// update stats
+		m_pruningStatus.m_pruneThreadState = PruningStatus::PruneThreadState_Monitoring;		
+		m_pruningStatus.m_nTotalItemsLastScanned = nScannedCount;
+		m_pruningStatus.SetTotalItemsPrunedCount(m_pruningStatus.GetTotalItemsPrunedCount() + nDeletedCount);
+		m_pruningStatus.SetItemsPrunedTodayCount(m_pruningStatus.GetItemsPrunedTodayCount() + nDeletedCount);
+		m_pruningStatus.NotifyAllListenersOfChange();
 		return 0;
 	}
 };

@@ -159,6 +159,7 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="icon1.ico" />
+    <Image Include="images\icon1.ico" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\libcommon\libcommon\libcommon.vcxproj">

@@ -6,9 +6,7 @@
 #include <iterator>
 #include <algorithm>
 #include <functional>
-#include <boost/exception/diagnostic_information.hpp>
 #include <boost/program_options.hpp>
-
 #include <Windows.h>
 #include <shlobj.h>
 #include <conio.h>
@@ -22,7 +20,7 @@
 #include "resource.h"
 
 RecentItemsExclusions g_RecentItemsExclusionsApp;	// app globals and config
-PruningThread g_PruningThread;
+PruningThread g_PruningThread;						// primary work thread
 
 namespace po = boost::program_options;
 
@@ -38,12 +36,45 @@ void ExitSignalWatchThread()
 	if (g_RecentItemsExclusionsApp.hWndSysTray)
 	{
 		PostMessage(g_RecentItemsExclusionsApp.hWndSysTray, g_RecentItemsExclusionsApp.UWM_EXIT, 0, 0);
-	}	
+	}
 	return;
 }
 
-// UpdateCheckThread
-//  - periodically checks for updates
+void PruningThreadStatusWatchThread()
+{
+	DEBUG_PRINT(L"PruningThreadStatusWatchThread");
+	_ASSERT(g_RecentItemsExclusionsApp.hStatusChangedEvent && g_RecentItemsExclusionsApp.hExitEvent);
+	HANDLE hWaitObjects[2] = { g_RecentItemsExclusionsApp.hExitEvent, g_RecentItemsExclusionsApp.hPruningThreadStatusChangedEvent };
+	bool bEnd = false;
+	do
+	{
+		DWORD dwWaitResult = WaitForMultipleObjects(_countof(hWaitObjects), hWaitObjects, FALSE, INFINITE);
+		switch (dwWaitResult)
+		{
+		case WAIT_OBJECT_0:
+			DEBUG_PRINT(L"PruningThreadStatusWatchThread Exit event received...");
+			bEnd = true;
+			break;
+		case WAIT_OBJECT_0 + 1:
+			DEBUG_PRINT(L"PruningThreadStatusWatchThread Status changed event received...");
+			// send notification message to dialog window, if open
+			if (g_RecentItemsExclusionsApp.hWndListDialog)
+			{
+				PostMessage(g_RecentItemsExclusionsApp.hWndListDialog, g_RecentItemsExclusionsApp.UWM_STATUS_CHANGED, 0, 0);
+			}
+			break;
+		default:
+			DEBUG_PRINT(L"PruningThreadStatusWatchThread WaitForMultipleObjects failed");
+			bEnd = true;
+			break;
+		}
+	} while (!bEnd);
+
+	DEBUG_PRINT(L"PruningThreadStatusWatchThread ends");
+	return;
+}
+
+// UpdateCheckThread - periodically checks for updates
 void UpdateCheckThread()
 {
 	DEBUG_PRINT(L"UpdateCheckThread");
@@ -75,7 +106,7 @@ void UpdateCheckThread()
 			bEnd = true;
 			break;
 		case WAIT_TIMEOUT:
-			DEBUG_PRINT(L"Update thread periodic check");			
+			DEBUG_PRINT(L"Update thread periodic check");
 			break;
 		default:
 			DEBUG_PRINT(L"Update thread unexpected wait result, aborting");
@@ -84,6 +115,20 @@ void UpdateCheckThread()
 	} while (!bEnd);
 	DEBUG_PRINT(L"UpdateCheckThread ends");
 	return;
+}
+
+// returns true if an existing instance was found
+bool BringExistingInstanceToForeground()
+{
+	HWND hWnd = FindWindow(g_RecentItemsExclusionsApp.SYSTRAY_WINDOW_CLASS_NAME, nullptr);
+	if (hWnd)
+	{
+		// found existing instance, issue open main dialog command
+		SendMessage(hWnd, RecentItemsExclusions::UWM_OPEN_LIST_DIALOG, 0, 0);
+		CloseHandle(hWnd);
+		return true;
+	}
+	return false;
 }
 
 bool CreateOrReinitializeTrayWindow(const bool bFirstTimeCreation)
@@ -142,7 +187,7 @@ LRESULT CALLBACK TrayWndProc(HWND hWnd, UINT nMessage, WPARAM wParam, LPARAM lPa
 		// register to get taskbar recreation messages
 		g_RecentItemsExclusionsApp.hWndSysTray = hWnd;
 		s_uTaskbarRestartMessageId = RegisterWindowMessage(L"TaskbarCreated");
-		s_hAppIcon = LoadIcon(g_RecentItemsExclusionsApp.hInst, MAKEINTRESOURCE(IDI_ICON1));		
+		s_hAppIcon = LoadIcon(g_RecentItemsExclusionsApp.hInst, MAKEINTRESOURCE(IDI_ICON1));
 		PostMessage(hWnd, RecentItemsExclusions::UWM_START_UPDATE_CHECK_THREAD, 0, 0);
 		PostMessage(hWnd, RecentItemsExclusions::UWM_START_PRUNING_THREAD, 0, 0);
 		return 0;
@@ -175,10 +220,9 @@ LRESULT CALLBACK TrayWndProc(HWND hWnd, UINT nMessage, WPARAM wParam, LPARAM lPa
 		return 0;
 	}
 	case RecentItemsExclusions::UWM_START_UPDATE_CHECK_THREAD:
-	{		
+	{
 		DEBUG_PRINT(L"UWM_START_UPDATE_CHECK_THREAD");
-		std::thread t(UpdateCheckThread);
-		t.detach();
+		std::thread(UpdateCheckThread).detach();
 		return 0;
 	}
 	case RecentItemsExclusions::UWM_STOP_PRUNING_THREAD:
@@ -238,6 +282,27 @@ LRESULT CALLBACK TrayWndProc(HWND hWnd, UINT nMessage, WPARAM wParam, LPARAM lPa
 		bNotificationWaiting_DoUpdate = true;
 	}
 	break;
+	case RecentItemsExclusions::UWM_OPEN_LIST_DIALOG:
+	{
+		if (!g_RecentItemsExclusionsApp.hWndListDialog)
+		{
+			if (DialogBoxParam(g_RecentItemsExclusionsApp.hInst, MAKEINTRESOURCE(IDD_EXCLUSIONS_LIST), NULL, &ListDialogProc, 0) == 0)
+			{
+				// reload list and restart thread
+				// TODO: create watcher thread on config list in case externally changed
+				std::vector<std::wstring> vStrings;
+				g_RecentItemsExclusionsApp.ListSerializer.LoadListFromFile(g_RecentItemsExclusionsApp.strListSavePath, vStrings);
+				SendMessage(hWnd, RecentItemsExclusions::UWM_START_PRUNING_THREAD, 0, 0);
+			}
+		}
+		else
+		{
+			// bring existing to front
+			SetForegroundWindow(g_RecentItemsExclusionsApp.hWndListDialog);
+		}
+	}
+	break;
+
 	case RecentItemsExclusions::UWM_TRAY:
 		switch (lParam)
 		{
@@ -261,22 +326,7 @@ LRESULT CALLBACK TrayWndProc(HWND hWnd, UINT nMessage, WPARAM wParam, LPARAM lPa
 			break;
 		case WM_LBUTTONDBLCLK:
 		case WM_LBUTTONUP:
-			if (!g_RecentItemsExclusionsApp.hWndListDialog)
-			{
-				if (DialogBoxParam(g_RecentItemsExclusionsApp.hInst, MAKEINTRESOURCE(IDD_EXCLUSIONS_LIST), NULL, &ListDialogProc, 0) == 0)
-				{
-					// reload list and restart thread
-					// TODO: create watcher thread on config list in case externally changed
-					std::vector<std::wstring> vStrings;
-					g_RecentItemsExclusionsApp.ListSerializer.LoadListFromFile(g_RecentItemsExclusionsApp.strListSavePath, vStrings);
-					SendMessage(hWnd, RecentItemsExclusions::UWM_START_PRUNING_THREAD, 0, 0);
-				}
-			}
-			else
-			{
-				// bring existing to front
-				SetForegroundWindow(g_RecentItemsExclusionsApp.hWndListDialog);
-			}
+			SendMessage(hWnd, RecentItemsExclusions::UWM_OPEN_LIST_DIALOG, 0, 0);
 			break;
 		case WM_RBUTTONUP:
 		{
@@ -342,14 +392,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pwCmdLine
 
 	po::options_description desc("Options");
 	desc.add_options()
-		("help,h", "show help")	
+		("help,h", "show help")
 		("close,c", "Close running instances.")
 		("install,i", "Run install tasks.")
 		("uninstall,u", "Run uninstall tasks.");
-	po::variables_map vm;	
+	po::variables_map vm;
 	po::store(po::command_line_parser(__argc, __argv).options(desc).allow_unregistered().run(), vm);
 	po::notify(vm);
-	
+
 	if (vm.count("help"))
 	{
 		std::cerr << desc << "\n";
@@ -369,8 +419,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pwCmdLine
 	{
 		// first close the handle to our own exit event so we know when it disappears
 		CloseHandle(g_RecentItemsExclusionsApp.hExternalExitSignal);
-		g_RecentItemsExclusionsApp.hExternalExitSignal = NULL;		
-		
+		g_RecentItemsExclusionsApp.hExternalExitSignal = NULL;
+
 		HANDLE hEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, g_RecentItemsExclusionsApp.EXTERNAL_EXIT_SIGNAL_EVENT_NAME);
 		if (hEvent)
 		{
@@ -398,6 +448,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pwCmdLine
 		return 1;
 	}
 
+	// if an existing instance exists, bring it to front and exit
+	if (BringExistingInstanceToForeground())
+	{
+		DEBUG_PRINT(L"Existing instance opened");
+		return 0;
+	}
+
+	// if beta version, turn include betas option on
+#ifdef BETA_VERSION	
+	if (!g_RecentItemsExclusionsApp.AreBetaUpdatesEnabled())
+	{
+		g_RecentItemsExclusionsApp.SetBetaUpdatesEnabled(true);
+	}
+#endif
+
 	// initialize common controls
 	INITCOMMONCONTROLSEX icex = {};
 	icex.dwSize = sizeof(icex);
@@ -410,10 +475,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pwCmdLine
 
 	CreateOrReinitializeTrayWindow(true);
 
-	{
-		std::thread t(ExitSignalWatchThread);
-		t.detach();
-	}
+	std::thread(ExitSignalWatchThread).detach();
+	std::thread(PruningThreadStatusWatchThread).detach();
 
 	// returns non-zero if message is OTHER than WM_QUIT, or -1 if invalid window handle
 	// see https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getmessage (recommends this exact clause)

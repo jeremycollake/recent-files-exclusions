@@ -1,12 +1,14 @@
 #include "ListDialog.h"
 #include <windowsx.h>
 #include "RecentItemsExclusions.h"
+#include "PruningThread.h"
 #include "UpdateCheckFuncs.h"
 #include "AboutDialog.h"
 #include "DebugOut.h"
 #include "resource.h"
 
 extern RecentItemsExclusions g_RecentItemsExclusionsApp;
+extern PruningThread g_PruningThread;						// primary work thread
 
 bool SetListInDialog(const HWND hWndList, const std::vector<std::wstring>& vStrings)
 {
@@ -49,8 +51,7 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 {
 	HWND hWndList;
 	static bool s_bChangesMade = false;
-	TCHAR wszT[1024] = { 0 };
-
+	
 	switch (message)
 	{
 	case WM_INITDIALOG:
@@ -69,6 +70,12 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 		{
 			SetListInDialog(GetDlgItem(hDlg, IDC_LIST_STRINGS), vStrings);
 		}
+		
+		// register for notifications of pruning thread state change
+		g_PruningThread.m_pruningStatus.AddListeningEvent(g_RecentItemsExclusionsApp.hPruningThreadStatusChangedEvent);
+
+		// populate initial stats
+		SendMessage(hDlg, RecentItemsExclusions::UWM_STATUS_CHANGED, 0, 0);
 
 		return TRUE;
 	}
@@ -87,6 +94,38 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 		// set HWND to NULL to indicate dialog is closed
 		g_RecentItemsExclusionsApp.hWndListDialog = NULL;
 		return 0;
+	case WM_ENTERMENULOOP:
+	{
+		DEBUG_PRINT(L"WM_ENTERMENULOOP, updating menu item states...");
+		auto hMenu = GetMenu(hDlg);
+		if (hMenu)
+		{
+			// if beta version, don't allow toggle off of include betas. This is forced on in winmain.
+#ifdef BETA_VERSION
+			EnableMenuItem(hMenu, ID_UPDATES_INCLUDEBETAS, MF_GRAYED | MF_DISABLED);
+#endif	
+			CheckMenuItem(hMenu, ID_UPDATES_INCLUDEBETAS, g_RecentItemsExclusionsApp.AreBetaUpdatesEnabled() ? MF_CHECKED : MF_UNCHECKED);
+			// hMenu doesn't need freed
+		}
+		break;
+	}
+	case RecentItemsExclusions::UWM_STATUS_CHANGED:
+	{
+		DEBUG_PRINT(L"UWM_STATUS_CHANGED");
+
+		CString csStr;
+		csStr.Format(L"Pruning thread state: %s\n\n"
+			"\nItems Last Scanned: %u"
+			"\nTotal Items Pruned: %u"
+			"\nItems Pruned Today: %u",
+			g_PruningThread.m_pruningStatus.GetStateString().c_str(),
+			g_PruningThread.m_pruningStatus.m_nTotalItemsLastScanned,
+			g_PruningThread.m_pruningStatus.GetTotalItemsPrunedCount(),
+			g_PruningThread.m_pruningStatus.GetItemsPrunedTodayCount());			
+
+		SetDlgItemText(hDlg, IDC_STATS, csStr);
+	}
+	break;
 	case WM_COMMAND:
 		switch (LOWORD(wParam))
 		{
@@ -96,7 +135,12 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 			return TRUE;
 		}
 		break;
-		case ID_HELP_CHECKFORUPDATES:
+		case ID_UPDATES_INCLUDEBETAS:
+		{
+			g_RecentItemsExclusionsApp.SetBetaUpdatesEnabled(!g_RecentItemsExclusionsApp.AreBetaUpdatesEnabled());
+		}
+		break;
+		case ID_UPDATES_CHECKFORUPDATES:
 		{
 			std::wstring strLatestVer;
 			FetchLatestVersionNumber(&strLatestVer, NULL);
@@ -146,7 +190,6 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 		{
 			hWndList = GetDlgItem(hDlg, IDC_LIST_STRINGS);
 			int nI = (int)SendMessage(hWndList, LB_GETCURSEL, 0, 0);
-			SendMessage(hWndList, LB_GETTEXT, nI, (LPARAM)&wszT);
 			SendMessage(hWndList, LB_DELETESTRING, nI, 0);
 			s_bChangesMade = true;
 			return TRUE;

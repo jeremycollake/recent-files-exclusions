@@ -9,7 +9,8 @@ INT_PTR WINAPI AboutDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 	case WM_INITDIALOG:
 	{
 		SetWindowText(hDlg, std::wstring(L"About " PRODUCT_NAME).c_str());
-		SetDlgItemText(hDlg, IDC_VERSIONINFO, std::wstring(PRODUCT_NAME L" v" PRODUCT_VERSION "\n" PRODUCT_COPYRIGHT).c_str());
+		SetDlgItemText(hDlg, IDC_VERSIONINFO, std::wstring(PRODUCT_NAME L" v" PRODUCT_VERSION L"\n" PRODUCT_COPYRIGHT L"\n" COMPANY_URL
+			L"\n\n" OTHER_CREDITS).c_str());
 		return TRUE;
 	}
 	break;
