@@ -53,7 +53,7 @@ DWORD FetchLatestVersionNumber(_Out_ std::wstring* pwstrResult, const HANDLE hEv
 	pszVersionBuffer = nullptr;
 
 	// basic check for bad result
-	int nFirstNewline = strVersion.find_first_of(L"\r\n");
+	size_t nFirstNewline = strVersion.find_first_of(L"\r\n");
 	if (strVersion.length() < 3
 		||
 		nFirstNewline == std::wstring::npos

@@ -54,7 +54,7 @@ AutoCloseWindow true
 !define MUI_LANGDLL_REGISTRY_ROOT "HKCU"                  ; leave HKCU to prevent UAC registry virtualization
 !define MUI_LANGDLL_REGISTRY_KEY "Software\RecentItemsExclusions"
 !define MUI_LANGDLL_REGISTRY_VALUENAME "InstallerLanguage"
-!define MUI_LANGDLL_ALWAYSSHOW     ; Let's always give the user the option to re-pick language.. instead of remembering.. or should we?
+!define MUI_LANGDLL_ALWAYSSHOW
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -91,14 +91,10 @@ Var GIVEN_LANGUAGE
 ;
 Function .onInit       
   
- ${IfNot} ${AtLeastWinVista}
-    MessageBox MB_ICONEXCLAMATION "Windows XP is not supported. See last v8 build of Process Lasso, which we made free."
+  ${IfNot} ${AtLeastWinVista}
+    MessageBox MB_ICONEXCLAMATION $(OS_Not_Supported)
     Quit
-  ${EndIf}
-  ${If} ${IsWin2003}  
-    MessageBox MB_ICONEXCLAMATION "Windows 2003 is not supported. See last v8 build of Process Lasso, which we made free."
-    Quit
-  ${EndIf}
+  ${EndIf}  
 
   WriteRegStr "HKCU" "Software\RecentItemsExclusions" "Install_Dir" $0
   WriteRegStr "HKLM" "Software\RecentItemsExclusions" "Install_Dir" $0
@@ -130,7 +126,7 @@ FunctionEnd
 ;
 ; main install section
 ;
-Section SecCore DESC_SecCore
+Section $(SecCore) DESC_SecCore
   SectionIn RO
  
   ${DisableX64FSRedirection}
@@ -147,12 +143,10 @@ Section SecCore DESC_SecCore
   no_lang_on_cmd_line: 
     
   SetOutPath $INSTDIR   
-    
-  IfFileExists "$INSTDIR\RecentItemsExclusions.exe" 0 +2
-  ExecWait '"$INSTDIR\RecentItemsExclusions.exe" -updateprep"'
-  ; above doesn't wait for RecentItemsExclusionsw to actually terminate and cleanup. So give it time.
-  ; TODO: replace with our WaitForWriteable utility
-  Sleep 2000
+     	
+  ; close existing instance if running
+  IfFileExists "$INSTDIR\RecentItemsExclusions.exe" 0 +1
+    ExecWait '"$INSTDIR\RecentItemsExclusions.exe" -close"'    
      
   SetOverwrite on    
   File "..\x64\release\RecentItemsExclusions.exe"  
@@ -162,35 +156,25 @@ Section SecCore DESC_SecCore
   
   ;
   ; wipe start menu slate
-  ;
-  ; try all individual folders too, in case failure occurs on total removal
   ;  
-  SetOutPath "$TEMP"    
-  SetShellVarContext current
-  Delete "$SMPROGRAMS\RecentItemsExclusions\*"
-  RMDir /r '$SMPROGRAMS\RecentItemsExclusions\'    ; MUST use single quotes (nsis-unicode bug?)
-  
   SetShellVarContext all        
   Delete "$SMPROGRAMS\RecentItemsExclusions\*"    
-  RMDir /r '$SMPROGRAMS\RecentItemsExclusions\'     ; MUST use single quotes (nsis-unicode bug?)
+  RMDir /r '$SMPROGRAMS\RecentItemsExclusions\'     ; must use single quotes
      
+  SetShellVarContext current
+  Delete "$SMPROGRAMS\RecentItemsExclusions\*"
+  RMDir /r '$SMPROGRAMS\RecentItemsExclusions\'    ; must use single quotes
+   
   ; -------------------------------------------------------------------
   ;
   ; Create start menu shortcuts
   ; 
-  
-  ;
-  ; first set the out path, as this is used as the CWD for start menu short-cuts
-  ;
-  SetOutPath "$INSTDIR"
-    
+  SetShellVarContext all                       ; TODO: Add installer option to choose between current and all users (#7)
   CreateDirectory "$SMPROGRAMS\RecentItemsExclusions"  
   CreateShortCut "$SMPROGRAMS\RecentItemsExclusions\Recent Items Exclusions.lnk" "$INSTDIR\RecentItemsExclusions.exe" "" "$INSTDIR\RecentItemsExclusions.exe" 0 SW_SHOWNORMAL "" "Launch Recent tems Exclusions"
   
   ; install the startup task
   ExecWait '"$INSTDIR\RecentItemsExclusions.exe" -install'
-  ; start the app
-  ExecWait '"$INSTDIR\RecentItemsExclusions.exe" -start'
 
   ;
   ; Write the uninstall keys for Windows
@@ -202,11 +186,11 @@ Section SecCore DESC_SecCore
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentItemsExclusions" "VersionMinor" ${Version_Minor}
   
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentItemsExclusions" "Publisher" "Bitsum"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentItemsExclusions" "URLInfoAbout" "https://bitsum.com/RecentItemsExclusions"  
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentItemsExclusions" "HelpLink" "https://bitsum.com/RecentItemsExclusions"  
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentItemsExclusions" "URLInfoAbout" "https://bitsum.com/apps/RecentItemsExclusions"  
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentItemsExclusions" "HelpLink" "https://bitsum.com/apps/RecentItemsExclusions"  
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentItemsExclusions" "InstallLocation" "$INSTDIR"
 
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentItemsExclusions" "DisplayIcon" '"$INSTDIR\RecentItemsExclusionsw.exe"'    
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentItemsExclusions" "DisplayIcon" '"$INSTDIR\RecentItemsExclusions.exe"'    
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentItemsExclusions" "DisplayName" "RecentItemsExclusions"  
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentItemsExclusions" "UninstallString" '"$INSTDIR\uninstall.exe"'
   WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentItemsExclusions" "NoModify" 1
@@ -220,7 +204,7 @@ SectionEnd
 ;  Launch after install 
 ;
 Section "Launch RecentItemsExclusions" SecLaunch
-	Exec '"$INSTDIR\RecentItemsExclusions.exe"'
+    Exec '"$INSTDIR\RecentItemsExclusions.exe"'
 SectionEnd
 ; ==================================================================================
 
@@ -267,10 +251,9 @@ FunctionEnd
 ;
 ;
 VIProductVersion ${Version_File}
-VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "RecentItemsExclusions"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "Comments" "RecentItemsExclusions"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "Recent Items Exclusions"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "Comments" "Recent Items Exclusions"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "CompanyName" "Bitsum LLC"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalTrademarks" "RecentItemsExclusions is a trademark of Bitsum LLC"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "(c)2019 Bitsum LLC"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "RecentItemsExclusions Installer"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "(c)2023 Bitsum LLC"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "Recent Items Exclusions Installer"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${Version_Text}"

@@ -51,8 +51,10 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 
 	switch (message)
 	{
-	case WM_INITDIALOG:
+	case WM_INITDIALOG:		
 	{
+		g_RecentItemsExclusionsApp.hWndListDialog = hDlg;
+		
 		s_bChangesMade = false;	// reinit for subsequent dialog instances
 
 		SetMenu(hDlg, LoadMenu(g_RecentItemsExclusionsApp.hResourceModule, MAKEINTRESOURCE(IDR_MENU_MAIN)));
@@ -61,7 +63,8 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 		if (g_RecentItemsExclusionsApp.ListSerializer.LoadListFromFile(g_RecentItemsExclusionsApp.strListSavePath, vStrings) > 0)
 		{
 			SetListInDialog(GetDlgItem(hDlg, IDC_LIST_STRINGS), vStrings);
-		}
+		}		
+
 		return TRUE;
 	}
 	case WM_CLOSE:
@@ -75,6 +78,10 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 		}
 		EndDialog(hDlg, 1);
 		return TRUE;
+	case WM_DESTROY:
+		// set HWND to NULL to indicate dialog is closed
+		g_RecentItemsExclusionsApp.hWndListDialog = NULL;
+		return 0;
 	case WM_COMMAND:
 		switch (LOWORD(wParam))
 		{

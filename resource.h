@@ -14,8 +14,8 @@
 #define IDS_PRODUCT_NAME                110
 #define IDS_SIGNED_AND_VERIFIED         111
 #define IDS_SIGNED_NOT_SIGNED           112
-#define IDS_SIGNED_ERROR_UNKNOWN_FMT    113                   
-#define IDS_SIGNED_ERROR_DISALLOWED     114                     
+#define IDS_SIGNED_ERROR_UNKNOWN_FMT    113
+#define IDS_SIGNED_ERROR_DISALLOWED     114
 #define IDS_SIGNED_PRESENT_NOT_TRUSTED  115
 #define IDS_SIGNED_NO_EXPLICIT          116
 #define IDS_UPDATE_SIGNED_FAILURE_MESSAGE_FMT 117
@@ -28,6 +28,7 @@
 #define IDC_BUTTON3                     1004
 #define IDC_REMOVE                      1004
 #define IDC_EDIT1                       1005
+#define IDC_BUTTON4                     1006
 #define ID_FILE_EXIT                    40001
 #define ID_FILE_MINIMIZE                40002
 #define ID_HELP_ABOUT                   40003
@@ -40,7 +41,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        118
 #define _APS_NEXT_COMMAND_VALUE         40007
-#define _APS_NEXT_CONTROL_VALUE         1006
+#define _APS_NEXT_CONTROL_VALUE         1007
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

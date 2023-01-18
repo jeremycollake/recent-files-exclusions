@@ -25,14 +25,24 @@ public:
 		strListSavePath += L"\\RecentItemsExclusions.txt";
 
 		hExitEvent = CreateEvent(nullptr,
-			TRUE, // manual reset for exit event, since we set once and have multiple listeners
-			FALSE, EXIT_SIGNAL_EVENT_NAME);
+			TRUE, // manual reset for exit events, since we set once and have multiple listeners
+			FALSE, nullptr);
+		_ASSERT(hExitEvent);
+
+		hExternalExitSignal = CreateEvent(nullptr,
+			TRUE, // manual reset for exit events, since we set once and have multiple listeners
+			FALSE, EXTERNAL_EXIT_SIGNAL_EVENT_NAME);				
+		_ASSERT(hExternalExitSignal);
 	}
 	~RecentItemsExclusions()
 	{
 		if (hExitEvent)
 		{
 			CloseHandle(hExitEvent);
+		}
+		if (hExternalExitSignal)
+		{
+			CloseHandle(hExternalExitSignal);
 		}
 	}
 	const WCHAR* INSTALLER_FILENAME = L"RecentItemsExclusionsSetup.exe";
@@ -45,7 +55,7 @@ public:
 
 	ListSerializer ListSerializer;
 	std::wstring strListSavePath;
-	const WCHAR* EXIT_SIGNAL_EVENT_NAME = L"{4ceb4f3d-9838-4153-a6a5-3f004a563133}";
+	const WCHAR* EXTERNAL_EXIT_SIGNAL_EVENT_NAME = L"Global\\{4ceb4f3d-9838-4153-a6a5-3f004a563133-}";
 	const WCHAR* SYSTRAY_WINDOW_CLASS_NAME = L"RecentItemsExclusions_TrayClass";
 	const WCHAR* SYSTRAY_WINDOW_NAME = L"RecentItemsExclusions_TrayWnd";
 	const static UINT UWM_TRAY = WM_USER + 1;
@@ -54,11 +64,14 @@ public:
 	const static UINT UWM_STOP_PRUNING_THREAD = WM_USER + 4;
 	const static UINT UWM_NEW_VERSION_AVAILABLE = WM_USER + 5;
 	const static UINT UWM_START_UPDATE_CHECK_THREAD = WM_USER + 6;
+	const static UINT UWM_EXIT = WM_USER + 7;
 
 	HINSTANCE hInst = NULL;
 	HMODULE hResourceModule = NULL;
 	HWND hWndSysTray = NULL;
+	HWND hWndListDialog = NULL;
 	HANDLE hExitEvent;
+	HANDLE hExternalExitSignal;
 
 	void SetUpdateChecksEnabled(const bool bVal)
 	{

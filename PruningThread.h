@@ -88,7 +88,7 @@ private:
 			switch (dwWaitStatus)
 			{
 			case WAIT_OBJECT_0:
-				DEBUG_PRINT(L"Exit event received");
+				DEBUG_PRINT(L"PruningThread Exit event received");
 				bExit = true;
 				break;
 			case WAIT_OBJECT_0 + 1:
