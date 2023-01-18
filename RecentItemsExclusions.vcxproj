@@ -136,12 +136,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AboutDialog.cpp" />
     <ClCompile Include="ListDialog.cpp" />
     <ClCompile Include="RecentItemsExclusions.cpp" />
     <ClCompile Include="SignatureVerifier.cpp" />
     <ClCompile Include="UpdateCheckFuncs.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AboutDialog.h" />
     <ClInclude Include="DebugOut.h" />
     <ClInclude Include="ListDialog.h" />
     <ClInclude Include="ListSerializer.h" />

@@ -55,7 +55,7 @@ public:
 
 	ListSerializer ListSerializer;
 	std::wstring strListSavePath;
-	const WCHAR* EXTERNAL_EXIT_SIGNAL_EVENT_NAME = L"Global\\{4ceb4f3d-9838-4153-a6a5-3f004a563133-}";
+	const WCHAR* EXTERNAL_EXIT_SIGNAL_EVENT_NAME = L"Global\\{4ceb4f3d-9838-4153-a6a5-3f004a563133}";
 	const WCHAR* SYSTRAY_WINDOW_CLASS_NAME = L"RecentItemsExclusions_TrayClass";
 	const WCHAR* SYSTRAY_WINDOW_NAME = L"RecentItemsExclusions_TrayWnd";
 	const static UINT UWM_TRAY = WM_USER + 1;

@@ -1,6 +1,8 @@
 #include "ListDialog.h"
 #include <windowsx.h>
 #include "RecentItemsExclusions.h"
+#include "UpdateCheckFuncs.h"
+#include "AboutDialog.h"
 #include "DebugOut.h"
 #include "resource.h"
 
@@ -51,10 +53,13 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 
 	switch (message)
 	{
-	case WM_INITDIALOG:		
+	case WM_INITDIALOG:
 	{
 		g_RecentItemsExclusionsApp.hWndListDialog = hDlg;
-		
+
+		SendMessage(hDlg, WM_SETICON, ICON_SMALL, (LPARAM)LoadImage(g_RecentItemsExclusionsApp.hResourceModule, MAKEINTRESOURCE(IDI_ICON1), IMAGE_ICON, 16, 16, 0));
+		SendMessage(hDlg, WM_SETICON, ICON_BIG, (LPARAM)LoadImage(g_RecentItemsExclusionsApp.hResourceModule, MAKEINTRESOURCE(IDI_ICON1), IMAGE_ICON, 32, 32, 0));
+
 		s_bChangesMade = false;	// reinit for subsequent dialog instances
 
 		SetMenu(hDlg, LoadMenu(g_RecentItemsExclusionsApp.hResourceModule, MAKEINTRESOURCE(IDR_MENU_MAIN)));
@@ -63,7 +68,7 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 		if (g_RecentItemsExclusionsApp.ListSerializer.LoadListFromFile(g_RecentItemsExclusionsApp.strListSavePath, vStrings) > 0)
 		{
 			SetListInDialog(GetDlgItem(hDlg, IDC_LIST_STRINGS), vStrings);
-		}		
+		}
 
 		return TRUE;
 	}
@@ -85,6 +90,42 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 	case WM_COMMAND:
 		switch (LOWORD(wParam))
 		{
+		case ID_HELP_ABOUT:
+		{
+			DialogBoxParam(g_RecentItemsExclusionsApp.hResourceModule, MAKEINTRESOURCE(IDD_ABOUT), NULL, &AboutDialogProc, 0);
+			return TRUE;
+		}
+		break;
+		case ID_HELP_CHECKFORUPDATES:
+		{
+			std::wstring strLatestVer;
+			FetchLatestVersionNumber(&strLatestVer, NULL);
+			if (!strLatestVer.empty())
+			{
+				g_RecentItemsExclusionsApp.strFetechedVersionAvailableForDownload = strLatestVer;
+				DEBUG_PRINT(L"Fetched latest version is %s", strLatestVer.c_str());
+				// check if available version is newer than current, and if so, notify user
+				if (TextVersionToULONG(strLatestVer.c_str()) > TextVersionToULONG(PRODUCT_VERSION))
+				{
+					if (MessageBox(hDlg, L"A newer version is available. Update now?", PRODUCT_NAME, MB_ICONINFORMATION | MB_YESNO) == IDYES)
+					{
+						DownloadAndApplyUpdate();
+					}
+				}
+				else
+				{
+					MessageBox(hDlg, L"No update available.", PRODUCT_NAME, MB_ICONINFORMATION);
+				}
+			}
+			return TRUE;
+		}
+		break;
+		case ID_FILE_MINIMIZE:
+		{
+			PostMessage(hDlg, WM_CLOSE, 0, 0);
+			return TRUE;
+		}
+		break;
 		case IDC_CLEAR:
 			ListBox_ResetContent(GetDlgItem(hDlg, IDC_LIST_STRINGS));
 			return TRUE;
@@ -130,7 +171,7 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 			}
 			EndDialog(hDlg, 1);
 			return TRUE;
-		} // end IDCANCEL		
+		} // end IDCANCEL			
 		} // end WM_COMMAND
 		break;
 	}

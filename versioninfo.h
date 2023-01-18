@@ -9,6 +9,9 @@
 #define RESOURCE_LEGAL_COPYRIGHT "(c)2023 Bitsum LLC"
 #define RESOURCE_COMPANY_NAME "Bitsum LLC"
 
+#define PRODUCT_WEBPAGE L"https://bitsum.com/apps/recentitemsexclusions"
+#define PRODUCT_COPYRIGHT RESOURCE_LEGAL_COPYRIGHT
+
 // for internet requests
 #define PRODUCT_USER_AGENT PRODUCT_NAME L"/" PRODUCT_VERSION
 
