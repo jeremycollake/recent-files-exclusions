@@ -3,6 +3,7 @@
 #include "../libcommon/libcommon/libCommon.h"
 #include "ListSerializer.h"
 #include "../libcommon/libcommon/ProductOptions.h"
+#include "TaskScheduler.h"
 #include "resource.h"
 #include "versioninfo.h"
 
@@ -18,11 +19,11 @@ public:
 		// build up list config save path incrementally to ensure parent folders exist
 		strListSavePath = GetAppDataPath();
 		CreateDirectory(strListSavePath.c_str(), NULL);
-		strListSavePath += L"\\RecentItemsExclusions";
+		strListSavePath += L"\\RecentFilesExclusions";
 		CreateDirectory(strListSavePath.c_str(), NULL);
 		strListSavePath += L"\\config";
 		CreateDirectory(strListSavePath.c_str(), NULL);
-		strListSavePath += L"\\RecentItemsExclusions.txt";
+		strListSavePath += L"\\exclusions.txt";
 
 		hExitEvent = CreateEvent(nullptr,
 			TRUE, // manual reset for exit events, since we set once and have multiple listeners
@@ -53,11 +54,13 @@ public:
 		}
 	}	
 
-	const WCHAR* INSTALLER_FILENAME = L"RecentItemsExclusionsSetup.exe";
+	const WCHAR* SETUP_FILE_URL_BASE_PATH = L"https://dl.bitsum.com/files/";
+	const WCHAR* INSTALLER_FILENAME = L"RecentFilesExclusionsSetup.exe";	
+	const WCHAR* STARTUP_TASK_NAME = L"Recent Files Exclusions";
 	const static unsigned long MINIMUM_VALID_INSTALLER_SIZE = 16 * 1024;
 	const WCHAR* UPDATE_CHECKS_DISABLED_VALUENAME = L"UpdateChecksDisabled";	// inverse so we default to enabled
-	const WCHAR* BETA_UPDATES_VALUENAME = L"BetaUpdates";
-	const WCHAR* UPDATE_CHECK_URL = L"https://update.bitsum.com/versioninfo/recentitemsexclusions/";
+	const WCHAR* BETA_UPDATES_VALUENAME = L"BetaUpdates";	
+	const WCHAR* UPDATE_CHECK_URL = L"https://update.bitsum.com/versioninfo/recentfilesexclusions/";
 	const static unsigned long UPDATE_CHECK_INTERVAL_MS = 1000 * 60 * 60 * 24;	// 1 day
 	std::wstring strFetechedVersionAvailableForDownload;
 
@@ -84,8 +87,9 @@ public:
 	HANDLE hExternalExitSignal;
 	HANDLE hPruningThreadStatusChangedEvent;
 	
-	const WCHAR* TOTAL_ITEMS_PRUNED_VALUENAME = L"TotalItemsPruned";
-	const WCHAR* ITEMS_PRUNED_TODAY_VALUENAME = L"ItemsPrunedToday";
+	const WCHAR* LAST_SCANNED_COUNT_VALUENAME = L"ItemsLastScannedCount";
+	const WCHAR* TOTAL_ITEMS_PRUNED_VALUENAME = L"TotalItemsPrunedCount";
+	const WCHAR* ITEMS_PRUNED_TODAY_VALUENAME = L"ItemsPrunedTodayCount";
 	const WCHAR* LAST_DAY_VALUENAME = L"LastDay";
 
 	void SetUpdateChecksEnabled(const bool bVal)

@@ -36,8 +36,6 @@ public:
 		}
 	}
 
-	unsigned long m_nTotalItemsLastScanned;
-
 	void AddListeningEvent(HANDLE hEvent)
 	{
 		m_vhListeningEventsForStatusChange.push_back(hEvent);
@@ -48,6 +46,13 @@ public:
 		{
 			SetEvent(h);
 		}
+	}
+	void Reset()
+	{
+		SetItemsLastScannedCount(0);
+		SetTotalItemsPrunedCount(0);
+		SetItemsPrunedTodayCount(0);
+		NotifyAllListenersOfChange();
 	}
 	unsigned int GetTotalItemsPrunedCount()
 	{
@@ -60,6 +65,19 @@ public:
 	{
 		ProductOptions prodOptions(HKEY_CURRENT_USER, PRODUCT_NAME);
 		prodOptions.set_value(g_RecentItemsExclusionsApp.TOTAL_ITEMS_PRUNED_VALUENAME, nCount);
+		return nCount;
+	}
+	unsigned int GetItemsLastScannedCount()
+	{
+		ProductOptions prodOptions(HKEY_CURRENT_USER, PRODUCT_NAME);
+		unsigned int nCount = 0;
+		prodOptions.get_value(g_RecentItemsExclusionsApp.LAST_SCANNED_COUNT_VALUENAME, nCount);
+		return nCount;
+	}
+	unsigned int SetItemsLastScannedCount(unsigned int nCount)
+	{
+		ProductOptions prodOptions(HKEY_CURRENT_USER, PRODUCT_NAME);
+		prodOptions.set_value(g_RecentItemsExclusionsApp.LAST_SCANNED_COUNT_VALUENAME, nCount);
 		return nCount;
 	}
 	int GetItemsPrunedTodayCount()
@@ -131,7 +149,7 @@ private:
 		DEBUG_PRINT(L"FilesystemPruningThread begin");
 		std::wstring pathRecentItems;
 		{
-			WCHAR* pwszPath = nullptr;			
+			WCHAR* pwszPath = nullptr;
 			if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Recent, 0, NULL, &pwszPath)))
 			{
 				pathRecentItems = pwszPath;
@@ -243,7 +261,7 @@ private:
 
 		m_pruningStatus.m_pruneThreadState = PruningStatus::PruneThreadState_Pruning;
 		m_pruningStatus.NotifyAllListenersOfChange();
-		
+
 		for (auto path : vPaths)
 		{
 			WIN32_FIND_DATA findData = {};
@@ -278,8 +296,8 @@ private:
 		}
 
 		// update stats
-		m_pruningStatus.m_pruneThreadState = PruningStatus::PruneThreadState_Monitoring;		
-		m_pruningStatus.m_nTotalItemsLastScanned = nScannedCount;
+		m_pruningStatus.m_pruneThreadState = PruningStatus::PruneThreadState_Monitoring;
+		m_pruningStatus.SetItemsLastScannedCount(nScannedCount);
 		m_pruningStatus.SetTotalItemsPrunedCount(m_pruningStatus.GetTotalItemsPrunedCount() + nDeletedCount);
 		m_pruningStatus.SetItemsPrunedTodayCount(m_pruningStatus.GetItemsPrunedTodayCount() + nDeletedCount);
 		m_pruningStatus.NotifyAllListenersOfChange();

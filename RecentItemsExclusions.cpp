@@ -1,4 +1,3 @@
-// TODO: consider name change to recent items pruner
 #include <iostream>
 #include <thread>
 #include <vector>
@@ -407,13 +406,36 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pwCmdLine
 	}
 	else if (vm.count("install"))
 	{
-		// TODO: add to startup 
-		return 1;
+		DEBUG_PRINT(L"-install");
+		CTaskScheduler TaskScheduler;
+		WCHAR wszFile[MAX_PATH+1] = { 0 };
+		if (GetModuleFileName(NULL, wszFile, _countof(wszFile)) && wszFile[0])
+		{
+			// create startup task
+			if (!TaskScheduler.CreateStartupTask(g_RecentItemsExclusionsApp.STARTUP_TASK_NAME, wszFile, L"-tray", NULL, true, true))
+			{
+				DEBUG_PRINT(L"ERROR: Could not create startup task. Make sure Task Scheduler service is started.");
+				return 1;
+			}
+		}
+		else
+		{
+			return 1;
+		}
+		return 0;
 	}
 	else if (vm.count("uninstall"))
 	{
-		// TODO: remove from startup folder
-		return 1;
+		DEBUG_PRINT(L"-uninstall");
+		CTaskScheduler TaskScheduler;
+		if (!TaskScheduler.RemoveStartupTask(g_RecentItemsExclusionsApp.STARTUP_TASK_NAME))
+		{
+			DEBUG_PRINT(L"ERROR removing Task Scheduler task");
+			return 1;
+		}
+		RegDeleteKey(HKEY_CURRENT_USER, L"Software\\" PRODUCT_NAME);
+		RegDeleteKey(HKEY_LOCAL_MACHINE, L"Software\\" PRODUCT_NAME);
+		return 0;
 	}
 	else if (vm.count("close"))
 	{

@@ -18,9 +18,9 @@ SetCompressorDictSize 32
 !define beta_version
 
 !ifdef beta_version    
-    BrandingText "RecentItemsExclusions - ${Version_Text} BETA - Built on ${__DATE__} at ${__TIME__} - (c)2023 Bitsum LLC"    
+    BrandingText "Recent Files Exclusions - ${Version_Text} BETA - Built on ${__DATE__} at ${__TIME__} - (c)2023 Bitsum LLC"    
 !else
-	BrandingText "RecentItemsExclusions - ${Version_Text} - Built on ${__DATE__} at ${__TIME__} - (c)2023 Bitsum LLC"
+	BrandingText "Recent Files Exclusions - ${Version_Text} - Built on ${__DATE__} at ${__TIME__} - (c)2023 Bitsum LLC"
 !endif
 
 ;
@@ -30,21 +30,21 @@ SetCompressorDictSize 32
 RequestExecutionLevel admin
 
 ; The name of the installer
-Name "RecentItemsExclusions"	
+Name "RecentFilesExclusions"	
 
 Icon "..\images\icon1.ico"					; must contain 32x32@16bpp icon
-!define MUI_ICON "..\..\images\icon1.ico"		; must contain 32x32@16bpp icon
-;!define MUI_HEADERIMAGE_BITMAP "..\images\RecentItemsExclusions.bmp"
+!define MUI_ICON "..\images\icon1.ico"		; must contain 32x32@16bpp icon
+;!define MUI_HEADERIMAGE_BITMAP "..\images\instheader.bmp"
 
 XPStyle On
 InstProgressFlags smooth colored
 
 ; The file to write
-OutFile "..\x64\Release\RecentItemsExclusionsSetup.exe"
+OutFile ".\x64\Release\RecentFilesExclusionsSetup.exe"
 
-InstallDir "$PROGRAMFILES64\RecentItemsExclusions"
+InstallDir "$PROGRAMFILES64\RecentFilesExclusions"
 
-InstallDirRegKey HKCU Software\RecentItemsExclusions "Install_Dir"  ; leave HKCU to prevent UAC registry virtualization
+InstallDirRegKey HKCU Software\RecentFilesExclusions "Install_Dir"  ; leave HKCU to prevent UAC registry virtualization
 LicenseBkColor /windows
 AutoCloseWindow true
 
@@ -52,7 +52,7 @@ AutoCloseWindow true
 !define MUI_ABORTWARNING  
 
 !define MUI_LANGDLL_REGISTRY_ROOT "HKCU"                  ; leave HKCU to prevent UAC registry virtualization
-!define MUI_LANGDLL_REGISTRY_KEY "Software\RecentItemsExclusions"
+!define MUI_LANGDLL_REGISTRY_KEY "Software\RecentFilesExclusions"
 !define MUI_LANGDLL_REGISTRY_VALUENAME "InstallerLanguage"
 !define MUI_LANGDLL_ALWAYSSHOW
 
@@ -96,8 +96,8 @@ Function .onInit
     Quit
   ${EndIf}  
 
-  WriteRegStr "HKCU" "Software\RecentItemsExclusions" "Install_Dir" $0
-  WriteRegStr "HKLM" "Software\RecentItemsExclusions" "Install_Dir" $0
+  WriteRegStr "HKCU" "Software\RecentFilesExclusions" "Install_Dir" $0
+  WriteRegStr "HKLM" "Software\RecentFilesExclusions" "Install_Dir" $0
   
   IfSilent 0 ask_for_language     
     ; get parameters and fill variables if silent install
@@ -145,56 +145,56 @@ Section $(SecCore) DESC_SecCore
   SetOutPath $INSTDIR   
      	
   ; close existing instance if running
-  IfFileExists "$INSTDIR\RecentItemsExclusions.exe" 0 +1
-    ExecWait '"$INSTDIR\RecentItemsExclusions.exe" -close"'    
+  IfFileExists "$INSTDIR\RecentFilesExclusions.exe" 0 +1
+    ExecWait '"$INSTDIR\RecentFilesExclusions.exe" -close"'    
      
   SetOverwrite on    
-  File "..\x64\release\RecentItemsExclusions.exe"  
+  File "..\x64\release\RecentFilesExclusions.exe"  
     
-  WriteRegStr HKCU "SOFTWARE\RecentItemsExclusions" "Install_Dir" "$INSTDIR"
-  WriteRegStr HKLM "SOFTWARE\RecentItemsExclusions" "Install_Dir" "$INSTDIR"
+  WriteRegStr HKCU "SOFTWARE\RecentFilesExclusions" "Install_Dir" "$INSTDIR"
+  WriteRegStr HKLM "SOFTWARE\RecentFilesExclusions" "Install_Dir" "$INSTDIR"
   
   ;
   ; wipe start menu slate
   ;  
   SetShellVarContext all        
-  Delete "$SMPROGRAMS\RecentItemsExclusions\*"    
-  RMDir /r '$SMPROGRAMS\RecentItemsExclusions\'     ; must use single quotes
+  Delete "$SMPROGRAMS\RecentFilesExclusions\*"    
+  RMDir /r '$SMPROGRAMS\RecentFilesExclusions\'     ; must use single quotes
      
   SetShellVarContext current
-  Delete "$SMPROGRAMS\RecentItemsExclusions\*"
-  RMDir /r '$SMPROGRAMS\RecentItemsExclusions\'    ; must use single quotes
+  Delete "$SMPROGRAMS\RecentFilesExclusions\*"
+  RMDir /r '$SMPROGRAMS\RecentFilesExclusions\'    ; must use single quotes
    
   ; -------------------------------------------------------------------
   ;
   ; Create start menu shortcuts
   ; 
   SetShellVarContext all                       ; TODO: Add installer option to choose between current and all users (#7)
-  CreateDirectory "$SMPROGRAMS\RecentItemsExclusions"  
-  CreateShortCut "$SMPROGRAMS\RecentItemsExclusions\Recent Items Exclusions.lnk" "$INSTDIR\RecentItemsExclusions.exe" "" "$INSTDIR\RecentItemsExclusions.exe" 0 SW_SHOWNORMAL "" "Launch Recent tems Exclusions"
+  CreateDirectory "$SMPROGRAMS\RecentFilesExclusions"  
+  CreateShortCut "$SMPROGRAMS\RecentFilesExclusions\Recent Items Exclusions.lnk" "$INSTDIR\RecentFilesExclusions.exe" "" "$INSTDIR\RecentFilesExclusions.exe" 0 SW_SHOWNORMAL "" "Launch Recent tems Exclusions"
   
   ; install the startup task
-  ExecWait '"$INSTDIR\RecentItemsExclusions.exe" -install'
+  ExecWait '"$INSTDIR\RecentFilesExclusions.exe" -install'
 
   ;
   ; Write the uninstall keys for Windows
   ;
   ; write version info 
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentItemsExclusions" "DisplayVersion" ${Version_Text}
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentItemsExclusions" "Version" ${Version_File}
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentItemsExclusions" "VersionMajor" ${Version_Major}
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentItemsExclusions" "VersionMinor" ${Version_Minor}
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentFilesExclusions" "DisplayVersion" ${Version_Text}
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentFilesExclusions" "Version" ${Version_File}
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentFilesExclusions" "VersionMajor" ${Version_Major}
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentFilesExclusions" "VersionMinor" ${Version_Minor}
   
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentItemsExclusions" "Publisher" "Bitsum"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentItemsExclusions" "URLInfoAbout" "https://bitsum.com/apps/RecentItemsExclusions"  
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentItemsExclusions" "HelpLink" "https://bitsum.com/apps/RecentItemsExclusions"  
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentItemsExclusions" "InstallLocation" "$INSTDIR"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentFilesExclusions" "Publisher" "Bitsum"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentFilesExclusions" "URLInfoAbout" "https://bitsum.com/apps/RecentFilesExclusions"  
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentFilesExclusions" "HelpLink" "https://bitsum.com/apps/RecentFilesExclusions"  
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentFilesExclusions" "InstallLocation" "$INSTDIR"
 
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentItemsExclusions" "DisplayIcon" '"$INSTDIR\RecentItemsExclusions.exe"'    
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentItemsExclusions" "DisplayName" "RecentItemsExclusions"  
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentItemsExclusions" "UninstallString" '"$INSTDIR\uninstall.exe"'
-  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentItemsExclusions" "NoModify" 1
-  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentItemsExclusions" "NoRepair" 1
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentFilesExclusions" "DisplayIcon" '"$INSTDIR\RecentFilesExclusions.exe"'    
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentFilesExclusions" "DisplayName" "RecentFilesExclusions"  
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentFilesExclusions" "UninstallString" '"$INSTDIR\uninstall.exe"'
+  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentFilesExclusions" "NoModify" 1
+  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RecentFilesExclusions" "NoRepair" 1
   WriteUninstaller "uninstall.exe"
    
 SectionEnd
@@ -203,8 +203,8 @@ SectionEnd
 ;
 ;  Launch after install 
 ;
-Section "Launch RecentItemsExclusions" SecLaunch
-    Exec '"$INSTDIR\RecentItemsExclusions.exe"'
+Section "Launch RecentFilesExclusions" SecLaunch
+    Exec '"$INSTDIR\RecentFilesExclusions.exe"'
 SectionEnd
 ; ==================================================================================
 
@@ -214,19 +214,19 @@ SectionEnd
 Section uninstall
  
   SetShellVarContext all           
-  Delete "$SMPROGRAMS\RecentItemsExclusions\*"  
-  RMDir /r "$SMPROGRAMS\RecentItemsExclusions"   
+  Delete "$SMPROGRAMS\RecentFilesExclusions\*"  
+  RMDir /r "$SMPROGRAMS\RecentFilesExclusions"   
          
-  ExecWait '"$INSTDIR\RecentItemsExclusions.exe" -close"'	    		  ; close any running instances
-  ExecWait '"$INSTDIR\RecentItemsExclusions.exe" -uninstall"'			  ; remove startup locations
+  ExecWait '"$INSTDIR\RecentFilesExclusions.exe" -close"'	    		  ; close any running instances
+  ExecWait '"$INSTDIR\RecentFilesExclusions.exe" -uninstall"'			  ; remove startup locations
   
-  DeleteRegKey HKLM "SOFTWARE\RecentItemsExclusions"
-  DeleteRegKey HKCU "SOFTWARE\RecentItemsExclusions"
-  DeleteRegKey HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\RecentItemsExclusions"
-  DeleteRegKey HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\RecentItemsExclusions"
+  DeleteRegKey HKLM "SOFTWARE\RecentFilesExclusions"
+  DeleteRegKey HKCU "SOFTWARE\RecentFilesExclusions"
+  DeleteRegKey HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\RecentFilesExclusions"
+  DeleteRegKey HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\RecentFilesExclusions"
     
   Delete "$INSTDIR\*"   
-  Delete "$SMPROGRAMS\RecentItemsExclusions\*"  
+  Delete "$SMPROGRAMS\RecentFilesExclusions\*"  
   RMDir /r "$INSTDIR"      
 SectionEnd
 
@@ -251,9 +251,9 @@ FunctionEnd
 ;
 ;
 VIProductVersion ${Version_File}
-VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "Recent Items Exclusions"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "Comments" "Recent Items Exclusions"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "Recent Files Exclusions"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "Comments" "Recent Files Exclusions"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "CompanyName" "Bitsum LLC"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "(c)2023 Bitsum LLC"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "Recent Items Exclusions Installer"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "Recent Files Exclusions Installer"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${Version_Text}"

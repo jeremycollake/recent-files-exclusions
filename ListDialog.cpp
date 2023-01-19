@@ -51,7 +51,7 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 {
 	HWND hWndList;
 	static bool s_bChangesMade = false;
-	
+
 	switch (message)
 	{
 	case WM_INITDIALOG:
@@ -70,7 +70,7 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 		{
 			SetListInDialog(GetDlgItem(hDlg, IDC_LIST_STRINGS), vStrings);
 		}
-		
+
 		// register for notifications of pruning thread state change
 		g_PruningThread.m_pruningStatus.AddListeningEvent(g_RecentItemsExclusionsApp.hPruningThreadStatusChangedEvent);
 
@@ -119,9 +119,9 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 			"\nTotal Items Pruned: %u"
 			"\nItems Pruned Today: %u",
 			g_PruningThread.m_pruningStatus.GetStateString().c_str(),
-			g_PruningThread.m_pruningStatus.m_nTotalItemsLastScanned,
+			g_PruningThread.m_pruningStatus.GetItemsLastScannedCount(),
 			g_PruningThread.m_pruningStatus.GetTotalItemsPrunedCount(),
-			g_PruningThread.m_pruningStatus.GetItemsPrunedTodayCount());			
+			g_PruningThread.m_pruningStatus.GetItemsPrunedTodayCount());
 
 		SetDlgItemText(hDlg, IDC_STATS, csStr);
 	}
@@ -170,9 +170,18 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 			return TRUE;
 		}
 		break;
+		case IDC_RESET:
+		{
+			g_PruningThread.m_pruningStatus.Reset();			
+			return TRUE;
+		}
+		break;
 		case IDC_CLEAR:
+		{
 			ListBox_ResetContent(GetDlgItem(hDlg, IDC_LIST_STRINGS));
 			return TRUE;
+		}
+		break;
 		case IDC_ADD:
 		{
 			std::wstring wstrNew;

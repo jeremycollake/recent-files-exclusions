@@ -1,6 +1,6 @@
 #define BETA_VERSION
 
-#define PRODUCT_NAME L"Recent Items Exclusions"
+#define PRODUCT_NAME L"Recent Files Exclusions"
 #define PRODUCT_VERSION L"0.0.0.1"
 #define RAW_FILE_VERSION 0,0,0,1
 #define RAW_PRODUCT_VERSION 0,0,0,1
@@ -10,7 +10,7 @@
 #define RESOURCE_COMPANY_NAME "Bitsum LLC"
 
 #define COMPANY_URL L"https://bitsum.com"
-#define PRODUCT_URL L"https://bitsum.com/apps/recentitemsexclusions"
+#define PRODUCT_URL L"https://bitsum.com/apps/recentfilesexclusions"
 #define OTHER_CREDITS L"App icon from https://icons8.com"
 #define PRODUCT_COPYRIGHT RESOURCE_LEGAL_COPYRIGHT
 

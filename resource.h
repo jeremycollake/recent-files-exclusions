@@ -31,6 +31,7 @@
 #define IDC_REMOVE                      1004
 #define IDC_EDIT1                       1005
 #define IDC_BUTTON4                     1006
+#define IDC_RESET                       1006
 #define IDC_VERSIONINFO                 1007
 #define IDC_STATS                       1008
 #define ID_FILE_EXIT                    40001

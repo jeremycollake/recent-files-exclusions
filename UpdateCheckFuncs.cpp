@@ -10,16 +10,21 @@
 
 extern RecentItemsExclusions g_RecentItemsExclusionsApp;	// app globals and config
 
+// TODO: encapsulate these functions
+
+// versioninfo signature indicating a valid response from the server (TODO: refactor versioninfo result to JSON or other structured data)
+#define BITSUM_UPDATE_MAGIC_SIG L"bitsum_updatevalidsig"
+
 DWORD FetchLatestVersionNumberAsync(_Out_ std::wstring* pwstrResult, const HANDLE hEventComplete)
 {
 	std::thread checkThread(FetchLatestVersionNumber, pwstrResult, hEventComplete);
-	checkThread.detach();	
+	checkThread.detach();
 	return GetThreadId(checkThread.native_handle());
 }
 
 // use FetchLatestVersionNumberAsync to spawn and detach this thread
 DWORD FetchLatestVersionNumber(_Out_ std::wstring* pwstrResult, const HANDLE hEventComplete)
-{	
+{
 	pwstrResult->clear();
 
 	std::wstring strUrl = g_RecentItemsExclusionsApp.UPDATE_CHECK_URL;
@@ -46,13 +51,13 @@ DWORD FetchLatestVersionNumber(_Out_ std::wstring* pwstrResult, const HANDLE hEv
 		}
 		return 1;
 	}
-	
+
 	std::wstring strVersion = convert_to_wstring(pszVersionBuffer);
 
 	delete pszVersionBuffer;
 	pszVersionBuffer = nullptr;
 
-	// basic check for bad result
+	// basic check for bad result	
 	size_t nFirstNewline = strVersion.find_first_of(L"\r\n");
 	if (strVersion.length() < 3
 		||
@@ -60,7 +65,7 @@ DWORD FetchLatestVersionNumber(_Out_ std::wstring* pwstrResult, const HANDLE hEv
 		||
 		strVersion.find(L".") == std::wstring::npos
 		||
-		strVersion.find(L"bitsum_updatevalidsig") == std::wstring::npos)
+		strVersion.find(BITSUM_UPDATE_MAGIC_SIG) == std::wstring::npos)
 	{
 		DEBUG_PRINT(L"Updater bad result");
 		if (hEventComplete)
@@ -69,7 +74,7 @@ DWORD FetchLatestVersionNumber(_Out_ std::wstring* pwstrResult, const HANDLE hEv
 		}
 		return 0;
 	}
-	
+
 	*pwstrResult = strVersion.substr(0, nFirstNewline);
 
 	if (hEventComplete)
@@ -94,12 +99,14 @@ bool DownloadAndApplyUpdate()
 	char* pBuffer = NULL;		// dynamically allocated and retunred by DownloadFile if success
 	int nDownloadSizeInBytes = 0;
 
-	CString csDownloadUrl = g_RecentItemsExclusionsApp.INSTALLER_FILENAME;
+	std::wstring strDownloadUrl = g_RecentItemsExclusionsApp.SETUP_FILE_URL_BASE_PATH;
 	if (g_RecentItemsExclusionsApp.AreBetaUpdatesEnabled())
 	{
-		csDownloadUrl += L"beta/";
+		strDownloadUrl += L"beta/";
 	}
-	if (false == DownloadBinaryFile(PRODUCT_USER_AGENT, csDownloadUrl, &pBuffer, &nDownloadSizeInBytes) || NULL == pBuffer || nDownloadSizeInBytes <= g_RecentItemsExclusionsApp.MINIMUM_VALID_INSTALLER_SIZE)
+	strDownloadUrl += g_RecentItemsExclusionsApp.INSTALLER_FILENAME;
+	DEBUG_PRINT(L"Downloading %s", strDownloadUrl.c_str());
+	if (false == DownloadBinaryFile(PRODUCT_USER_AGENT, strDownloadUrl.c_str(), &pBuffer, &nDownloadSizeInBytes) || NULL == pBuffer || nDownloadSizeInBytes <= g_RecentItemsExclusionsApp.MINIMUM_VALID_INSTALLER_SIZE)
 	{
 		DEBUG_PRINT(L"ERROR downloading file");
 		return false;
@@ -133,7 +140,7 @@ bool DownloadAndApplyUpdate()
 		DEBUG_PRINT(csTemp);
 		if (MessageBox(NULL, csTemp, PRODUCT_NAME, MB_ICONWARNING | MB_APPLMODAL | MB_YESNO) == IDYES)
 		{
-			ShellExecute(NULL, NULL, L"https://bitsum.com/recentitemspruner/?prod=rie&update_error_sig", NULL, NULL, SW_SHOWNORMAL);
+			ShellExecute(NULL, NULL, PRODUCT_URL L"/?prod=rie&update_error_sig", NULL, NULL, SW_SHOWNORMAL);
 		}
 		return false;
 	}
@@ -171,7 +178,7 @@ bool DownloadAndApplyUpdate()
 	{
 		CloseHandle(hProcess);
 	}
-	
+
 	// caller is now expected to exit, though installer should terminate the process anyway -- so is optional
 	return bR ? true : false;
 }
