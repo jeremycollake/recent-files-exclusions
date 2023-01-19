@@ -18,7 +18,15 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{4BD5363D-9728-4C91-A6A4-9D3E914160F6}"
 	ProjectSection(SolutionItems) = preProject
 		README.md = README.md
-		upload.cmd = upload.cmd
+		upload-installer-beta.cmd = upload-installer-beta.cmd
+		upload-installer-final.cmd = upload-installer-final.cmd
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Screenshots", "Screenshots", "{956DD560-AFEC-4FCE-BA40-72D40094DCD9}"
+	ProjectSection(SolutionItems) = preProject
+		screenshots\recentfilesexclusions.png = screenshots\recentfilesexclusions.png
+		screenshots\recentfilesinexplorer.png = screenshots\recentfilesinexplorer.png
+		screenshots\upload-screenshots.cmd = screenshots\upload-screenshots.cmd
 	EndProjectSection
 EndProject
 Global
@@ -56,6 +64,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{956DD560-AFEC-4FCE-BA40-72D40094DCD9} = {4BD5363D-9728-4C91-A6A4-9D3E914160F6}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {AB37A744-8709-45E8-B24B-8FF21181F6F0}

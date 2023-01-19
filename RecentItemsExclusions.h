@@ -86,6 +86,9 @@ public:
 	HANDLE hExitEvent;
 	HANDLE hExternalExitSignal;
 	HANDLE hPruningThreadStatusChangedEvent;
+
+	const COLORREF DARK_WINDOW_BACKGROUND = 0x383838;
+	const COLORREF DARK_WINDOW_TEXT_COLOR = 0xFFFFFF;
 	
 	const WCHAR* LAST_SCANNED_COUNT_VALUENAME = L"ItemsLastScannedCount";
 	const WCHAR* TOTAL_ITEMS_PRUNED_VALUENAME = L"TotalItemsPrunedCount";

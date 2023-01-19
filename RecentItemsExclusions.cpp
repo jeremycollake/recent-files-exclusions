@@ -10,6 +10,7 @@
 #include <shlobj.h>
 #include <conio.h>
 #include "../libcommon/libcommon/libCommon.h"
+#include "../libcommon/libcommon/win32-darkmode/win32-darkmode/darkmode.h"
 #include "DebugOut.h"
 #include "RecentItemsExclusions.h"
 #include "PruningThread.h"
@@ -175,6 +176,17 @@ bool CreateOrReinitializeTrayWindow(const bool bFirstTimeCreation)
 	return true;
 }
 
+void UnregisterTrayIcon()
+{
+	NOTIFYICONDATA ndata = {};
+	memset(&ndata, 0, sizeof(NOTIFYICONDATA)); // redundant
+	ndata.cbSize = sizeof(NOTIFYICONDATA);
+	ndata.hWnd = g_RecentItemsExclusionsApp.hWndSysTray;
+	ndata.uID = GetCurrentProcessId();	// our tray window ID will be our PID
+	ndata.uCallbackMessage = RecentItemsExclusions::UWM_TRAY;
+	Shell_NotifyIcon(NIM_DELETE, &ndata);	
+}
+
 LRESULT CALLBACK TrayWndProc(HWND hWnd, UINT nMessage, WPARAM wParam, LPARAM lParam)
 {
 	static HICON s_hAppIcon = NULL;
@@ -193,13 +205,7 @@ LRESULT CALLBACK TrayWndProc(HWND hWnd, UINT nMessage, WPARAM wParam, LPARAM lPa
 	case WM_DESTROY:
 	{
 		DEBUG_PRINT(L"WM_DESTROY");
-		NOTIFYICONDATA ndata = {};
-		memset(&ndata, 0, sizeof(NOTIFYICONDATA)); // redundant
-		ndata.cbSize = sizeof(NOTIFYICONDATA);
-		ndata.hWnd = g_RecentItemsExclusionsApp.hWndSysTray;
-		ndata.uID = GetCurrentProcessId();	// our tray window ID will be our PID
-		ndata.uCallbackMessage = RecentItemsExclusions::UWM_TRAY;
-		Shell_NotifyIcon(NIM_DELETE, &ndata);
+		UnregisterTrayIcon();
 		SetEvent(g_RecentItemsExclusionsApp.hExitEvent);
 		PostQuitMessage(0);
 		return 0;
@@ -495,6 +501,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pwCmdLine
 		InitCommonControls();
 	}
 
+	{
+		ProductOptions prodOptions_Machine(HKEY_LOCAL_MACHINE, PRODUCT_NAME);
+		if (!prodOptions_Machine[L"darkmode_disable"])
+		{
+			// dark mode temporary disabled for further dev
+			//InitDarkMode();
+		}
+	}
+
 	CreateOrReinitializeTrayWindow(true);
 
 	std::thread(ExitSignalWatchThread).detach();
@@ -521,6 +536,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pwCmdLine
 			}
 		}
 	}
+	// ensure tray icon unregistered
+	UnregisterTrayIcon();
+	
 	DEBUG_PRINT(L"app exiting");
 
 	return 0;

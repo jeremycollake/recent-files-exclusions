@@ -1,5 +1,6 @@
 #include "ListDialog.h"
 #include <windowsx.h>
+#include "../libcommon/libcommon/win32-darkmode/win32-darkmode/DarkMode.h"
 #include "RecentItemsExclusions.h"
 #include "PruningThread.h"
 #include "UpdateCheckFuncs.h"
@@ -51,12 +52,23 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 {
 	HWND hWndList;
 	static bool s_bChangesMade = false;
+	static HBRUSH hbrBkgnd = nullptr;
+	static const int ctlIds[] = { IDOK, IDCANCEL, IDC_RESET, IDC_STATS, IDC_ADD, IDC_REMOVE, IDC_CLEAR, IDC_LIST_STRINGS, IDC_STATIC, IDC_STATIC_1, IDC_STATIC_2 };
 
 	switch (message)
 	{
 	case WM_INITDIALOG:
 	{
 		g_RecentItemsExclusionsApp.hWndListDialog = hDlg;
+
+		if (g_darkModeSupported && g_darkModeEnabled)
+		{
+			for (auto i : ctlIds)
+			{
+				SetWindowTheme(GetDlgItem(hDlg, i), L"Explorer", nullptr);
+			}
+			SendMessageW(hDlg, WM_THEMECHANGED, 0, 0);
+		}
 
 		SendMessage(hDlg, WM_SETICON, ICON_SMALL, (LPARAM)LoadImage(g_RecentItemsExclusionsApp.hResourceModule, MAKEINTRESOURCE(IDI_ICON1), IMAGE_ICON, 16, 16, 0));
 		SendMessage(hDlg, WM_SETICON, ICON_BIG, (LPARAM)LoadImage(g_RecentItemsExclusionsApp.hResourceModule, MAKEINTRESOURCE(IDI_ICON1), IMAGE_ICON, 32, 32, 0));
@@ -94,6 +106,53 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 		// set HWND to NULL to indicate dialog is closed
 		g_RecentItemsExclusionsApp.hWndListDialog = NULL;
 		return 0;
+	case WM_CTLCOLORBTN:	// unused by pushbuttons due to multiple colors being used
+	case WM_CTLCOLOREDIT:
+	case WM_CTLCOLORSTATIC:
+	case WM_CTLCOLORMSGBOX:
+	case WM_CTLCOLORDLG:
+	case WM_CTLCOLORLISTBOX:
+	case WM_CTLCOLORSCROLLBAR:
+	{
+		if (g_darkModeSupported && g_darkModeEnabled)
+		{
+			HDC hdc = reinterpret_cast<HDC>(wParam);
+			SetTextColor(hdc, g_RecentItemsExclusionsApp.DARK_WINDOW_TEXT_COLOR);
+			SetBkColor(hdc, g_RecentItemsExclusionsApp.DARK_WINDOW_BACKGROUND);
+			if (!hbrBkgnd)
+			{
+				hbrBkgnd = CreateSolidBrush(g_RecentItemsExclusionsApp.DARK_WINDOW_BACKGROUND);
+			}
+			return reinterpret_cast<INT_PTR>(hbrBkgnd);
+		}
+	}
+	break;
+	case WM_SETTINGCHANGE:
+	{
+		if (g_darkModeSupported && IsColorSchemeChangeMessage(lParam))
+		{
+			SendMessageW(hDlg, WM_THEMECHANGED, 0, 0);
+		}
+	}
+	break;
+	case WM_THEMECHANGED:
+	{
+		if (g_darkModeSupported)
+		{
+			_AllowDarkModeForWindow(hDlg, g_darkModeEnabled);
+			RefreshTitleBarThemeColor(hDlg);
+
+			for (auto i : ctlIds)
+			{
+				HWND hButton = GetDlgItem(hDlg, i);
+				_AllowDarkModeForWindow(hButton, g_darkModeEnabled);
+				SendMessageW(hButton, WM_THEMECHANGED, 0, 0);
+			}
+
+			UpdateWindow(hDlg);
+		}
+	}
+	break;
 	case WM_ENTERMENULOOP:
 	{
 		DEBUG_PRINT(L"WM_ENTERMENULOOP, updating menu item states...");
@@ -114,7 +173,7 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 		DEBUG_PRINT(L"UWM_STATUS_CHANGED");
 
 		CString csStr;
-		csStr.Format(L"Pruning thread state: %s\n\n"
+		csStr.Format(L"Pruning thread state: %s\n"
 			"\nItems Last Scanned: %u"
 			"\nTotal Items Pruned: %u"
 			"\nItems Pruned Today: %u",
@@ -188,8 +247,15 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 			if (DialogBoxParam(g_RecentItemsExclusionsApp.hResourceModule, MAKEINTRESOURCE(IDD_ENTRYINPUT), NULL, &NewEntryDialogProc, reinterpret_cast<LPARAM>(&wstrNew)) == 0)
 			{
 				if (wstrNew.length())
-				{
-					ListBox_AddString(GetDlgItem(hDlg, IDC_LIST_STRINGS), wstrNew.c_str());
+				{					
+					if (ListBox_FindString(GetDlgItem(hDlg, IDC_LIST_STRINGS), -1, wstrNew.c_str()) != LB_ERR)
+					{
+						MessageBox(hDlg, L"ERROR: Item already in list", PRODUCT_NAME, MB_ICONERROR);
+					}
+					else
+					{
+						ListBox_AddString(GetDlgItem(hDlg, IDC_LIST_STRINGS), wstrNew.c_str());						
+					}
 					s_bChangesMade = true;
 				}
 			}

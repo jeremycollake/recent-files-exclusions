@@ -24,15 +24,15 @@ public:
 		switch (m_pruneThreadState)
 		{
 		case PruneThreadState_Stopped:
-			return L"Stopped";
+			return L"STOPPED";
 		case PruneThreadState_Monitoring:
-			return L"Monitoring";
+			return L"MONITORING";
 		case PruneThreadState_Pruning:
-			return L"Pruning";
+			return L"PRUNING";
 		case PruneThreadState_Error:
-			return L"Error";
+			return L"ERROR";
 		default:
-			return L"Unknown";
+			return L"UNKNOWN";
 		}
 	}
 

@@ -34,6 +34,9 @@
 #define IDC_RESET                       1006
 #define IDC_VERSIONINFO                 1007
 #define IDC_STATS                       1008
+#define IDC_STATIC                      1009
+#define IDC_STATIC_1                    1010
+#define IDC_STATIC_2                    1011
 #define ID_FILE_EXIT                    40001
 #define ID_FILE_MINIMIZE                40002
 #define ID_HELP_ABOUT                   40003
@@ -49,7 +52,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        120
 #define _APS_NEXT_COMMAND_VALUE         40010
-#define _APS_NEXT_CONTROL_VALUE         1009
+#define _APS_NEXT_CONTROL_VALUE         1012
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
