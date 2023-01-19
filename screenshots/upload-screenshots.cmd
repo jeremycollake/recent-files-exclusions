@@ -1,0 +1,1 @@
+scp .\recentfilesexclusions.png jeremy@az.bitsum.com:/var/www/vhosts/bitsum.com/wp-content/uploads/
