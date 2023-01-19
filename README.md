@@ -16,4 +16,4 @@ You can exclude any path or filenames by using a matching substring. For instanc
 Simply install and it’ll live in your system tray, pruning your Recent Files in real-time. 
 You can specify your exclusion list by clicking the tray icon to open its main window, or re-launching the app.
 
-![Recent Files Exclusions app screenshot text](https://github.com/jeremycollake/recentitemsexclusions/blob/prerelease/screenshots/recentfilesexclusions.png?raw=true)
+![Recent Files Exclusions app screenshot text](https://github.com/jeremycollake/recentitemsexclusions/blob/master/screenshots/recentfilesexclusions.png?raw=true)
