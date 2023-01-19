@@ -320,10 +320,15 @@ INT_PTR WINAPI NewEntryDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM
 		{
 			auto pwstr = reinterpret_cast<std::wstring*>(GetWindowLongPtr(hDlg, GWLP_USERDATA));
 			_ASSERT(pwstr);
-			// read text from edit control
 			WCHAR wszT[1024] = { 0 };
 			Edit_GetText(GetDlgItem(hDlg, IDC_EDIT1), wszT, _countof(wszT) - 1);
 			*pwstr = wszT;
+			if (pwstr->find_first_of(L"*?") != std::wstring::npos)
+			{
+				pwstr->clear();
+				MessageBox(hDlg, L"Wildcards are not supported. Use substrings instead. For instance, .pdf instead of *.pdf.", PRODUCT_NAME, MB_ICONINFORMATION);
+				break;
+			}
 			EndDialog(hDlg, 0);
 			return TRUE;
 		}
