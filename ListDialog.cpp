@@ -307,7 +307,7 @@ INT_PTR WINAPI NewEntryDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM
 		{
 			return FALSE;
 		}
-		SetWindowLongPtr(hDlg, GWLP_USERDATA, (LONG_PTR)lParam);
+		PostMessage(hDlg, WM_NEXTDLGCTL, IDC_EDIT1, TRUE);
 		return TRUE;
 	case WM_CLOSE:
 		EndDialog(hDlg, 1);
