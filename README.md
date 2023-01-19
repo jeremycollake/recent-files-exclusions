@@ -2,9 +2,9 @@
 
 Recent Files Exclusions is a tiny app that provides a way to exclude a folder and all its files and subfolders from the Windows Recent Files list (the lower pane in Explorer's home view).
 
-## Why is this necessary?
+## Why is it necessary?
 
-Windows only provides the ability to exclude specific files, one by one, and removal of a folder from Quick Access does not prevent its files from being added to Recent Files list.
+Windows only provides the ability to exclude specific files, one by one, and removal of a folder from Quick Access does not prevent its files from being added to the Recent Files list.
 
 ## How does it work?
 
