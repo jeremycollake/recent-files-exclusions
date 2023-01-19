@@ -16,10 +16,10 @@ CTaskScheduler::~CTaskScheduler()
 	CoUninitialize();
 }
 
-bool CTaskScheduler::CreateStartupTask(const TCHAR *ptszTaskName, const TCHAR *ptszPathname, const TCHAR *ptszCommandLine, const TCHAR *ptszUsername, bool bAllUsers, bool bElevated)
+bool CTaskScheduler::CreateStartupTask(const TCHAR* ptszTaskName, const TCHAR* ptszPathname, const TCHAR* ptszCommandLine, const TCHAR* ptszUsername, bool bAllUsers, bool bElevated)
 {
 	HRESULT hr;
-	ATL::CString wsTemp;	
+	ATL::CString wsTemp;
 
 	_ASSERT(ptszTaskName);
 	if (NULL == ptszTaskName)
@@ -34,7 +34,7 @@ bool CTaskScheduler::CreateStartupTask(const TCHAR *ptszTaskName, const TCHAR *p
 
 	//  ------------------------------------------------------
 	//  Create an instance of the Task Service. 
-	ITaskService *pService = NULL;
+	ITaskService* pService = NULL;
 	hr = CoCreateInstance(CLSID_TaskScheduler,
 		NULL,
 		CLSCTX_INPROC_SERVER,
@@ -43,7 +43,7 @@ bool CTaskScheduler::CreateStartupTask(const TCHAR *ptszTaskName, const TCHAR *p
 	if (FAILED(hr))
 	{
 		//"ERROR: %x\nEFFECT: %s can not start at login";
-		DEBUG_PRINT(L"ERROR Task Scheduler %x", hr);		
+		DEBUG_PRINT(L"ERROR Task Scheduler %x", hr);
 		return false;
 	}
 
@@ -54,19 +54,19 @@ bool CTaskScheduler::CreateStartupTask(const TCHAR *ptszTaskName, const TCHAR *p
 	if (FAILED(hr))
 	{
 		DEBUG_PRINT(L"ERROR Task Scheduler %x", hr);
-		pService->Release();		
+		pService->Release();
 		return false;
 	}
 
 	//  ------------------------------------------------------
 	//  Get the pointer to the root task folder.  This folder will hold the
 	//  new task that is registered.
-	ITaskFolder *pRootFolder = NULL;
+	ITaskFolder* pRootFolder = NULL;
 	hr = pService->GetFolder(_bstr_t(L"\\"), &pRootFolder);
 	if (FAILED(hr))
 	{
 		DEBUG_PRINT(L"ERROR Task Scheduler %x", hr);
-		pService->Release();		
+		pService->Release();
 		return false;
 	}
 
@@ -74,20 +74,20 @@ bool CTaskScheduler::CreateStartupTask(const TCHAR *ptszTaskName, const TCHAR *p
 	pRootFolder->DeleteTask(_bstr_t(wszTaskName), 0);
 
 	//  Create the task builder object to create the task.
-	ITaskDefinition *pTask = NULL;
+	ITaskDefinition* pTask = NULL;
 	hr = pService->NewTask(0, &pTask);
 
 	pService->Release();  // COM clean up.  Pointer is no longer used.
 	if (FAILED(hr))
 	{
 		DEBUG_PRINT(L"ERROR Task Scheduler %x", hr);
-		pRootFolder->Release();		
+		pRootFolder->Release();
 		return false;
 	}
 
 	//  ------------------------------------------------------
 	//  Get the registration info for setting the identification.
-	IRegistrationInfo *pRegInfo = NULL;
+	IRegistrationInfo* pRegInfo = NULL;
 	hr = pTask->get_RegistrationInfo(&pRegInfo);
 	if (FAILED(hr))
 	{
@@ -103,19 +103,19 @@ bool CTaskScheduler::CreateStartupTask(const TCHAR *ptszTaskName, const TCHAR *p
 	{
 		DEBUG_PRINT(L"ERROR Task Scheduler %x", hr);
 		pRootFolder->Release();
-		pTask->Release();		
+		pTask->Release();
 		return false;
 	}
 
 	//  ------------------------------------------------------
 	//  Create the settings for the task
-	ITaskSettings *pSettings = NULL;
+	ITaskSettings* pSettings = NULL;
 	hr = pTask->get_Settings(&pSettings);
 	if (FAILED(hr))
 	{
 		DEBUG_PRINT(L"ERROR Task Scheduler %x", hr);
 		pRootFolder->Release();
-		pTask->Release();		
+		pTask->Release();
 		return false;
 	}
 
@@ -125,7 +125,7 @@ bool CTaskScheduler::CreateStartupTask(const TCHAR *ptszTaskName, const TCHAR *p
 	{
 		DEBUG_PRINT(L"ERROR Task Scheduler %x", hr);
 		pRootFolder->Release();
-		pTask->Release();		
+		pTask->Release();
 		return false;
 	}
 	pSettings->put_ExecutionTimeLimit(_bstr_t(_T("PT0S")));
@@ -139,13 +139,13 @@ bool CTaskScheduler::CreateStartupTask(const TCHAR *ptszTaskName, const TCHAR *p
 	//
 	//  Set up principal information (security and more):
 	//
-	IPrincipal *pPrincipal = NULL;
+	IPrincipal* pPrincipal = NULL;
 	hr = pTask->get_Principal(&pPrincipal);
 	if (FAILED(hr))
 	{
 		DEBUG_PRINT(L"ERROR Task Scheduler %x", hr);
 		pRootFolder->Release();
-		pTask->Release();		
+		pTask->Release();
 		return false;
 	}
 
@@ -156,35 +156,35 @@ bool CTaskScheduler::CreateStartupTask(const TCHAR *ptszTaskName, const TCHAR *p
 	{
 		DEBUG_PRINT(L"ERROR Task Scheduler %x", hr);
 		pRootFolder->Release();
-		pTask->Release();		
+		pTask->Release();
 		return false;
 	}
 
 	//  ------------------------------------------------------
 	//  Get the trigger collection to insert the logon trigger.
-	ITriggerCollection *pTriggerCollection = NULL;
+	ITriggerCollection* pTriggerCollection = NULL;
 	hr = pTask->get_Triggers(&pTriggerCollection);
 	if (FAILED(hr))
 	{
 		DEBUG_PRINT(L"ERROR Task Scheduler %x", hr);
 		pRootFolder->Release();
-		pTask->Release();		
+		pTask->Release();
 		return false;
 	}
 
 	//  Add the logon trigger to the task.
-	ITrigger *pTrigger = NULL;
+	ITrigger* pTrigger = NULL;
 	hr = pTriggerCollection->Create(TASK_TRIGGER_LOGON, &pTrigger);
 	pTriggerCollection->Release();
 	if (FAILED(hr))
 	{
 		DEBUG_PRINT(L"ERROR Task Scheduler %x", hr);
 		pRootFolder->Release();
-		pTask->Release();		
+		pTask->Release();
 		return false;
 	}
 
-	ILogonTrigger *pLogonTrigger = NULL;
+	ILogonTrigger* pLogonTrigger = NULL;
 	hr = pTrigger->QueryInterface(
 		IID_ILogonTrigger, (void**)&pLogonTrigger);
 	pTrigger->Release();
@@ -192,9 +192,9 @@ bool CTaskScheduler::CreateStartupTask(const TCHAR *ptszTaskName, const TCHAR *p
 	{
 		DEBUG_PRINT(L"ERROR Task Scheduler %x", hr);
 		pRootFolder->Release();
-		pTask->Release();		
+		pTask->Release();
 		return false;
-	}	
+	}
 
 	hr = pLogonTrigger->put_Id(_bstr_t(L"Trigger1"));
 	if (FAILED(hr))
@@ -202,7 +202,7 @@ bool CTaskScheduler::CreateStartupTask(const TCHAR *ptszTaskName, const TCHAR *p
 		DEBUG_PRINT(L"ERROR Task Scheduler %x", hr);
 		pLogonTrigger->Release();
 		pRootFolder->Release();
-		pTask->Release();		
+		pTask->Release();
 		return false;
 	}
 
@@ -216,19 +216,19 @@ bool CTaskScheduler::CreateStartupTask(const TCHAR *ptszTaskName, const TCHAR *p
 		{
 			DEBUG_PRINT(L"ERROR Task Scheduler %x", hr);
 			pRootFolder->Release();
-			pTask->Release();			
+			pTask->Release();
 			return false;
 		}
 	}
 	else
-	{		
+	{
 		hr = pLogonTrigger->put_UserId(NULL);
 		pLogonTrigger->Release();
 	}
 
 	//  ------------------------------------------------------
 	//  Add an Action to the task.  
-	IActionCollection *pActionCollection = NULL;
+	IActionCollection* pActionCollection = NULL;
 
 	//  Get the task action collection pointer.
 	hr = pTask->get_Actions(&pActionCollection);
@@ -236,23 +236,23 @@ bool CTaskScheduler::CreateStartupTask(const TCHAR *ptszTaskName, const TCHAR *p
 	{
 		DEBUG_PRINT(L"ERROR Task Scheduler %x", hr);
 		pRootFolder->Release();
-		pTask->Release();		
+		pTask->Release();
 		return false;
 	}
 
 	//  Create the action, specifying that it is an executable action.
-	IAction *pAction = NULL;
+	IAction* pAction = NULL;
 	hr = pActionCollection->Create(TASK_ACTION_EXEC, &pAction);
 	pActionCollection->Release();
 	if (FAILED(hr))
 	{
 		DEBUG_PRINT(L"ERROR Task Scheduler %x", hr);
 		pRootFolder->Release();
-		pTask->Release();		
+		pTask->Release();
 		return false;
 	}
 
-	IExecAction *pExecAction = NULL;
+	IExecAction* pExecAction = NULL;
 	//  QI for the executable task pointer.
 	hr = pAction->QueryInterface(
 		IID_IExecAction, (void**)&pExecAction);
@@ -261,7 +261,7 @@ bool CTaskScheduler::CreateStartupTask(const TCHAR *ptszTaskName, const TCHAR *p
 	{
 		DEBUG_PRINT(L"ERROR Task Scheduler %x", hr);
 		pRootFolder->Release();
-		pTask->Release();		
+		pTask->Release();
 		return false;
 	}
 
@@ -288,8 +288,8 @@ bool CTaskScheduler::CreateStartupTask(const TCHAR *ptszTaskName, const TCHAR *p
 
 	//  ------------------------------------------------------
 	//  Save the task in the root folder.
-	IRegisteredTask *pRegisteredTask = NULL;
-		
+	IRegisteredTask* pRegisteredTask = NULL;
+
 	hr = pRootFolder->RegisterTaskDefinition(
 		_bstr_t(wszTaskName),
 		pTask,
@@ -305,7 +305,7 @@ bool CTaskScheduler::CreateStartupTask(const TCHAR *ptszTaskName, const TCHAR *p
 	{
 		DEBUG_PRINT(L"ERROR saving Task Scheduler task - %x", hr);
 		pRootFolder->Release();
-		pTask->Release();		
+		pTask->Release();
 		return false;
 	}
 
@@ -313,12 +313,12 @@ bool CTaskScheduler::CreateStartupTask(const TCHAR *ptszTaskName, const TCHAR *p
 	pRootFolder->Release();
 	pTask->Release();
 	pRegisteredTask->Release();
-	
+
 	return true;
 }
 
 bool CTaskScheduler::RemoveStartupTask(LPCWSTR pwszTaskName, LPCWSTR pwszTaskPathnameOpt)
-{	
+{
 	HRESULT hr;
 	CString wsTemp;
 
@@ -333,7 +333,7 @@ bool CTaskScheduler::RemoveStartupTask(LPCWSTR pwszTaskName, LPCWSTR pwszTaskPat
 
 	//  ------------------------------------------------------
 	//  Create an instance of the Task Service. 
-	ITaskService *pService = NULL;
+	ITaskService* pService = NULL;
 	hr = CoCreateInstance(CLSID_TaskScheduler,
 		NULL,
 		CLSCTX_INPROC_SERVER,
@@ -350,19 +350,19 @@ bool CTaskScheduler::RemoveStartupTask(LPCWSTR pwszTaskName, LPCWSTR pwszTaskPat
 
 	if (FAILED(hr))
 	{
-		pService->Release();		
+		pService->Release();
 		return false;
 	}
 
 	//  ------------------------------------------------------
 	//  Get the pointer to the root task folder.  This folder will hold the
 	//  new task that is registered.
-	ITaskFolder *pRootFolder = NULL;
+	ITaskFolder* pRootFolder = NULL;
 	hr = pService->GetFolder(_bstr_t(L"\\"), &pRootFolder);
 	if (FAILED(hr))
 	{
 		DEBUG_PRINT(L"Cannot get Root Folder pointer: %x\nEFFECT: Can not set Process Lasso to start at login with elevated rights!", hr);
-		pService->Release();		
+		pService->Release();
 		return false;
 	}
 
@@ -379,7 +379,7 @@ bool CTaskScheduler::RemoveStartupTask(LPCWSTR pwszTaskName, LPCWSTR pwszTaskPat
 
 	pRootFolder->Release();
 	pService->Release();
-	
+
 	return true;
 }
 
@@ -397,7 +397,7 @@ bool CTaskScheduler::EnsureTaskScheduler2ServiceIsEnabledAndReady()
 	SC_HANDLE scTaskScheduler = OpenService(scManager, _T("Schedule"), SERVICE_ALL_ACCESS);
 	if (!scTaskScheduler)
 	{
-		CloseServiceHandle(scManager);		
+		CloseServiceHandle(scManager);
 		return bR;
 	}
 
@@ -405,19 +405,19 @@ bool CTaskScheduler::EnsureTaskScheduler2ServiceIsEnabledAndReady()
 	{
 		switch (GetLastError())
 		{
-		case ERROR_SERVICE_ALREADY_RUNNING:			
+		case ERROR_SERVICE_ALREADY_RUNNING:
 			bR = true;
 			break;
-		case ERROR_SERVICE_DISABLED:			
+		case ERROR_SERVICE_DISABLED:
 			if (ChangeServiceConfig(scTaskScheduler, SERVICE_NO_CHANGE, SERVICE_AUTO_START, SERVICE_NO_CHANGE, NULL, NULL, NULL, NULL, NULL, NULL, NULL))
-			{								
+			{
 				if (StartService(scTaskScheduler, 0, NULL))
-				{				
+				{
 					bR = true;
 				}
 			}
 			break;
-		default:			
+		default:
 			break;
 		}
 	}

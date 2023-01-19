@@ -125,7 +125,6 @@ bool BringExistingInstanceToForeground()
 	{
 		// found existing instance, issue open main dialog command
 		SendMessage(hWnd, RecentItemsExclusions::UWM_OPEN_LIST_DIALOG, 0, 0);
-		CloseHandle(hWnd);
 		return true;
 	}
 	return false;
@@ -184,7 +183,7 @@ void UnregisterTrayIcon()
 	ndata.hWnd = g_RecentItemsExclusionsApp.hWndSysTray;
 	ndata.uID = GetCurrentProcessId();	// our tray window ID will be our PID
 	ndata.uCallbackMessage = RecentItemsExclusions::UWM_TRAY;
-	Shell_NotifyIcon(NIM_DELETE, &ndata);	
+	Shell_NotifyIcon(NIM_DELETE, &ndata);
 }
 
 LRESULT CALLBACK TrayWndProc(HWND hWnd, UINT nMessage, WPARAM wParam, LPARAM lParam)
@@ -201,6 +200,11 @@ LRESULT CALLBACK TrayWndProc(HWND hWnd, UINT nMessage, WPARAM wParam, LPARAM lPa
 		s_hAppIcon = LoadIcon(g_RecentItemsExclusionsApp.hInst, MAKEINTRESOURCE(IDI_ICON1));
 		PostMessage(hWnd, RecentItemsExclusions::UWM_START_UPDATE_CHECK_THREAD, 0, 0);
 		PostMessage(hWnd, RecentItemsExclusions::UWM_START_PRUNING_THREAD, 0, 0);
+		if (g_RecentItemsExclusionsApp.bOpenMainWindowAtStartup)
+		{
+			DEBUG_PRINT(L"-show switch given");
+			PostMessage(hWnd, RecentItemsExclusions::UWM_OPEN_LIST_DIALOG, 0, 0);
+		}
 		return 0;
 	case WM_DESTROY:
 	{
@@ -400,7 +404,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pwCmdLine
 		("help,h", "show help")
 		("close,c", "Close running instances.")
 		("install,i", "Run install tasks.")
-		("uninstall,u", "Run uninstall tasks.");
+		("uninstall,u", "Run uninstall tasks.")
+		("show,w", po::bool_switch(&g_RecentItemsExclusionsApp.bOpenMainWindowAtStartup), "Open main window at startup.");
+
 	po::variables_map vm;
 	po::store(po::command_line_parser(__argc, __argv).options(desc).allow_unregistered().run(), vm);
 	po::notify(vm);
@@ -414,7 +420,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pwCmdLine
 	{
 		DEBUG_PRINT(L"-install");
 		CTaskScheduler TaskScheduler;
-		WCHAR wszFile[MAX_PATH+1] = { 0 };
+		WCHAR wszFile[MAX_PATH + 1] = { 0 };
 		if (GetModuleFileName(NULL, wszFile, _countof(wszFile)) && wszFile[0])
 		{
 			// create startup task
@@ -537,8 +543,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pwCmdLine
 		}
 	}
 	// ensure tray icon unregistered
+	// TODO: This should be redundant, see issue #10
 	UnregisterTrayIcon();
-	
+
 	DEBUG_PRINT(L"app exiting");
 
 	return 0;

@@ -10,10 +10,10 @@ SetCompressor /Solid lzma
 SetCompressorDictSize 32
 
 ; version information
-!define Version_File "0.0.0.1"
-!define Version_Text "0.0.0.1"
+!define Version_File "0.0.0.2"
+!define Version_Text "0.0.0.2"
 !define Version_Major "0"
-!define Version_Minor "1"
+!define Version_Minor "2"
 
 !define beta_version
 
@@ -204,7 +204,7 @@ SectionEnd
 ;  Launch after install 
 ;
 Section "Launch RecentFilesExclusions" SecLaunch
-    Exec '"$INSTDIR\RecentFilesExclusions.exe"'
+    Exec '"$INSTDIR\RecentFilesExclusions.exe" --show'
 SectionEnd
 ; ==================================================================================
 

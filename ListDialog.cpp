@@ -231,7 +231,7 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 		break;
 		case IDC_RESET:
 		{
-			g_PruningThread.m_pruningStatus.Reset();			
+			g_PruningThread.m_pruningStatus.Reset();
 			return TRUE;
 		}
 		break;
@@ -247,14 +247,14 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 			if (DialogBoxParam(g_RecentItemsExclusionsApp.hResourceModule, MAKEINTRESOURCE(IDD_ENTRYINPUT), NULL, &NewEntryDialogProc, reinterpret_cast<LPARAM>(&wstrNew)) == 0)
 			{
 				if (wstrNew.length())
-				{					
+				{
 					if (ListBox_FindString(GetDlgItem(hDlg, IDC_LIST_STRINGS), -1, wstrNew.c_str()) != LB_ERR)
 					{
 						MessageBox(hDlg, L"ERROR: Item already in list", PRODUCT_NAME, MB_ICONERROR);
 					}
 					else
 					{
-						ListBox_AddString(GetDlgItem(hDlg, IDC_LIST_STRINGS), wstrNew.c_str());						
+						ListBox_AddString(GetDlgItem(hDlg, IDC_LIST_STRINGS), wstrNew.c_str());
 					}
 					s_bChangesMade = true;
 				}

@@ -36,14 +36,14 @@ public:
 		_ASSERT(hExternalExitSignal);
 
 		hPruningThreadStatusChangedEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-		_ASSERT(hPruningThreadStatusChangedEvent);		
+		_ASSERT(hPruningThreadStatusChangedEvent);
 	}
 	~RecentItemsExclusions()
 	{
 		if (hPruningThreadStatusChangedEvent)
 		{
 			CloseHandle(hPruningThreadStatusChangedEvent);
-		}		
+		}
 		if (hExternalExitSignal)
 		{
 			CloseHandle(hExternalExitSignal);
@@ -52,14 +52,14 @@ public:
 		{
 			CloseHandle(hExitEvent);
 		}
-	}	
+	}
 
 	const WCHAR* SETUP_FILE_URL_BASE_PATH = L"https://dl.bitsum.com/files/";
-	const WCHAR* INSTALLER_FILENAME = L"RecentFilesExclusionsSetup.exe";	
+	const WCHAR* INSTALLER_FILENAME = L"RecentFilesExclusionsSetup.exe";
 	const WCHAR* STARTUP_TASK_NAME = L"Recent Files Exclusions";
 	const static unsigned long MINIMUM_VALID_INSTALLER_SIZE = 16 * 1024;
 	const WCHAR* UPDATE_CHECKS_DISABLED_VALUENAME = L"UpdateChecksDisabled";	// inverse so we default to enabled
-	const WCHAR* BETA_UPDATES_VALUENAME = L"BetaUpdates";	
+	const WCHAR* BETA_UPDATES_VALUENAME = L"BetaUpdates";
 	const WCHAR* UPDATE_CHECK_URL = L"https://update.bitsum.com/versioninfo/recentfilesexclusions/";
 	const static unsigned long UPDATE_CHECK_INTERVAL_MS = 1000 * 60 * 60 * 24;	// 1 day
 	std::wstring strFetechedVersionAvailableForDownload;
@@ -79,6 +79,7 @@ public:
 	const static UINT UWM_OPEN_LIST_DIALOG = WM_USER + 8;
 	const static UINT UWM_STATUS_CHANGED = WM_USER + 9;
 
+	bool bOpenMainWindowAtStartup = false;
 	HINSTANCE hInst = NULL;
 	HMODULE hResourceModule = NULL;
 	HWND hWndSysTray = NULL;
@@ -89,7 +90,7 @@ public:
 
 	const COLORREF DARK_WINDOW_BACKGROUND = 0x383838;
 	const COLORREF DARK_WINDOW_TEXT_COLOR = 0xFFFFFF;
-	
+
 	const WCHAR* LAST_SCANNED_COUNT_VALUENAME = L"ItemsLastScannedCount";
 	const WCHAR* TOTAL_ITEMS_PRUNED_VALUENAME = L"TotalItemsPrunedCount";
 	const WCHAR* ITEMS_PRUNED_TODAY_VALUENAME = L"ItemsPrunedTodayCount";
