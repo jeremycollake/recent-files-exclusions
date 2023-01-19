@@ -17,6 +17,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Installer", "Installer\Inst
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{4BD5363D-9728-4C91-A6A4-9D3E914160F6}"
 	ProjectSection(SolutionItems) = preProject
+		LICENSE.TXT = LICENSE.TXT
 		README.md = README.md
 		upload-installer-beta.cmd = upload-installer-beta.cmd
 		upload-installer-final.cmd = upload-installer-final.cmd
