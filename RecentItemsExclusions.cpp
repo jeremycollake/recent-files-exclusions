@@ -424,7 +424,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pwCmdLine
 		if (GetModuleFileName(NULL, wszFile, _countof(wszFile)) && wszFile[0])
 		{
 			// create startup task
-			if (!TaskScheduler.CreateStartupTask(g_RecentItemsExclusionsApp.STARTUP_TASK_NAME, wszFile, L"-tray", NULL, true, true))
+			if (!TaskScheduler.CreateStartupTask(g_RecentItemsExclusionsApp.STARTUP_TASK_NAME, wszFile, L"-tray", NULL, true, false))
 			{
 				DEBUG_PRINT(L"ERROR: Could not create startup task. Make sure Task Scheduler service is started.");
 				return 1;
