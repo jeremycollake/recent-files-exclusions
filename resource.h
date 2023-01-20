@@ -21,6 +21,7 @@
 #define IDS_UPDATE_SIGNED_FAILURE_MESSAGE_FMT 117
 #define IDD_DIALOG3                     118
 #define IDD_ABOUT                       118
+#define IDS_UPDATE_ERROR_LAUNCHING      119
 #define IDC_LIST1                       1001
 #define IDC_LIST_STRINGS                1001
 #define IDC_BUTTON1                     1002

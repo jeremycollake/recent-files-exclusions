@@ -212,7 +212,10 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 				{
 					if (MessageBox(hDlg, L"A newer version is available. Update now?", PRODUCT_NAME, MB_ICONINFORMATION | MB_YESNO) == IDYES)
 					{
-						DownloadAndApplyUpdate();
+						if (!DownloadAndApplyUpdate())
+						{
+							MessageBox(hDlg, ResourceHelpers::LoadResourceString(g_RecentItemsExclusionsApp.hResourceModule, IDS_UPDATE_ERROR_LAUNCHING).c_str(), PRODUCT_NAME, MB_ICONSTOP);
+						}
 					}
 				}
 				else

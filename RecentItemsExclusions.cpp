@@ -329,7 +329,10 @@ LRESULT CALLBACK TrayWndProc(HWND hWnd, UINT nMessage, WPARAM wParam, LPARAM lPa
 			if (true == bNotificationWaiting_DoUpdate)
 			{
 				// calling this will cause the app to exit when downloaded installer is run
-				DownloadAndApplyUpdate();
+				if (!DownloadAndApplyUpdate())
+				{
+					MessageBox(hWnd, ResourceHelpers::LoadResourceString(g_RecentItemsExclusionsApp.hResourceModule, IDS_UPDATE_ERROR_LAUNCHING).c_str(), PRODUCT_NAME, MB_ICONSTOP);
+				}
 				bNotificationWaiting_DoUpdate = false;
 			}
 			break;
