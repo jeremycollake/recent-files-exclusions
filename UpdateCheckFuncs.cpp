@@ -86,13 +86,16 @@ DWORD FetchLatestVersionNumber(_Out_ std::wstring* pwstrResult, const HANDLE hEv
 
 bool DownloadAndApplyUpdate()
 {
-	CString csTargetSavePath;
-	WCHAR wszTemp[4096] = { 0 };
-
-	GetTempPath(_countof(wszTemp), wszTemp);
-	csTargetSavePath.Format(L"%s\\%s", wszTemp, L"bitsum");
+	CString csTargetSavePath, csTempPath;
+	{
+		WCHAR wszTempPath[MAX_PATH] = { 0 };
+		GetTempPath(_countof(wszTempPath), wszTempPath);
+		csTempPath = wszTempPath;
+		AppendBackslashIfMissing(csTempPath);
+	}
+	csTargetSavePath.Format(L"%s%s", csTempPath, L"bitsum");
 	CreateDirectory(csTargetSavePath, NULL);
-	csTargetSavePath.Format(L"%s\\%s\\%s", wszTemp, L"bitsum", g_RecentItemsExclusionsApp.INSTALLER_FILENAME);		// our subfolder to adhere to CryptoPrevent compliance
+	csTargetSavePath.AppendFormat(L"\\%s", g_RecentItemsExclusionsApp.INSTALLER_FILENAME);		// our subfolder to adhere to CryptoPrevent compliance
 
 	DEBUG_PRINT(L"Download save path: %s", csTargetSavePath);
 
@@ -111,8 +114,6 @@ bool DownloadAndApplyUpdate()
 		DEBUG_PRINT(L"ERROR downloading file");
 		return false;
 	}
-	// else continue
-	// save buffer to file
 	HANDLE hFile = CreateFile(csTargetSavePath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (INVALID_HANDLE_VALUE == hFile)
 	{
