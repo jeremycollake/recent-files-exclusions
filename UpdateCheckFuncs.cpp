@@ -145,42 +145,21 @@ bool DownloadAndApplyUpdate()
 		return false;
 	}
 
-	DEBUG_PRINT(L"Launching installer ...");
+	DEBUG_PRINT(L"Launching installer %s ...", csTargetSavePath);
 
-	// create command line arguments with arg0 quote encapsulated and /S switch for silent install
-	CString csArgs;
-	csArgs.Format(L"\"%s\" /S", csTargetSavePath);
+	HANDLE hProcess = LaunchProcessWithElevation(csTargetSavePath, L"/S", nullptr);
 
-	STARTUPINFO sInfo;
-	PROCESS_INFORMATION pInfo;
-	memset(&sInfo, 0, sizeof(sInfo));
-	memset(&pInfo, 0, sizeof(pInfo));
-
-	DEBUG_PRINT(L"Launching %s -- command line: %s", csTargetSavePath, csArgs);
-
-	// do NOT quote encapsulate param 1 of CreateProcess
-	BOOL bR = CreateProcess(csTargetSavePath,
-		csArgs.GetBuffer(),
-		NULL,           // Process handle not inheritable
-		NULL,           // Thread handle not inheritable
-		FALSE,          // Set handle inheritance to FALSE
-		0,              // No creation flags
-		NULL,           // Use parent's environment block
-		NULL,           // Use parent's starting directory 
-		&sInfo,            // Pointer to STARTUPINFO structure
-		&pInfo);           // Pointer to PROCESS_INFORMATION structure
-	HANDLE hProcess = pInfo.hProcess;
-	if (FALSE == bR || NULL == hProcess)
+	if (!hProcess)
 	{
 		DEBUG_PRINT(L"ERROR Launching %s", csTargetSavePath);
 	}
-	if (hProcess)
+	else
 	{
 		CloseHandle(hProcess);
 	}
 
 	// caller is now expected to exit, though installer should terminate the process anyway -- so is optional
-	return bR ? true : false;
+	return hProcess ? true : false;
 }
 
 
