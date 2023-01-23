@@ -98,8 +98,8 @@ public:
 
 	void SetUpdateChecksEnabled(const bool bVal)
 	{
-		ProductOptions prodOptions_User(HKEY_CURRENT_USER, PRODUCT_NAME);
-		ProductOptions prodOptions_Machine(HKEY_LOCAL_MACHINE, PRODUCT_NAME);
+		ProductOptions prodOptions_User(HKEY_CURRENT_USER, PRODUCT_NAME_REG);
+		ProductOptions prodOptions_Machine(HKEY_LOCAL_MACHINE, PRODUCT_NAME_REG);
 		prodOptions_User.set_value(UPDATE_CHECKS_DISABLED_VALUENAME, !bVal);
 		prodOptions_Machine.set_value(UPDATE_CHECKS_DISABLED_VALUENAME, !bVal);
 		return;
@@ -107,8 +107,8 @@ public:
 
 	bool AreUpdateChecksEnabled()
 	{
-		ProductOptions prodOptions_User(HKEY_CURRENT_USER, PRODUCT_NAME);
-		ProductOptions prodOptions_Machine(HKEY_LOCAL_MACHINE, PRODUCT_NAME);
+		ProductOptions prodOptions_User(HKEY_CURRENT_USER, PRODUCT_NAME_REG);
+		ProductOptions prodOptions_Machine(HKEY_LOCAL_MACHINE, PRODUCT_NAME_REG);
 		if (prodOptions_User[UPDATE_CHECKS_DISABLED_VALUENAME]
 			||
 			prodOptions_Machine[UPDATE_CHECKS_DISABLED_VALUENAME])
@@ -120,8 +120,8 @@ public:
 
 	void SetBetaUpdatesEnabled(const bool bVal)
 	{
-		ProductOptions prodOptions_User(HKEY_CURRENT_USER, PRODUCT_NAME);
-		ProductOptions prodOptions_Machine(HKEY_LOCAL_MACHINE, PRODUCT_NAME);
+		ProductOptions prodOptions_User(HKEY_CURRENT_USER, PRODUCT_NAME_REG);
+		ProductOptions prodOptions_Machine(HKEY_LOCAL_MACHINE, PRODUCT_NAME_REG);
 		prodOptions_User.set_value(BETA_UPDATES_VALUENAME, bVal);
 		prodOptions_Machine.set_value(BETA_UPDATES_VALUENAME, bVal);
 		return;
@@ -129,8 +129,8 @@ public:
 
 	bool AreBetaUpdatesEnabled()
 	{
-		ProductOptions prodOptions_User(HKEY_CURRENT_USER, PRODUCT_NAME);
-		ProductOptions prodOptions_Machine(HKEY_LOCAL_MACHINE, PRODUCT_NAME);
+		ProductOptions prodOptions_User(HKEY_CURRENT_USER, PRODUCT_NAME_REG);
+		ProductOptions prodOptions_Machine(HKEY_LOCAL_MACHINE, PRODUCT_NAME_REG);
 		if (prodOptions_User[BETA_UPDATES_VALUENAME]
 			||
 			prodOptions_Machine[BETA_UPDATES_VALUENAME])
@@ -141,6 +141,7 @@ public:
 	}
 };
 
+void DeprecatedArtifactCleanup();
 bool BringExistingInstanceToForeground();
 bool CreateOrReinitializeTrayWindow(const bool bFirstTimeCreation = true);
 LRESULT CALLBACK TrayWndProc(HWND hWnd, UINT nMessage, WPARAM wParam, LPARAM lParam);

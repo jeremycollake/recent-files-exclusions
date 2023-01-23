@@ -56,33 +56,33 @@ public:
 	}
 	unsigned int GetTotalItemsPrunedCount()
 	{
-		ProductOptions prodOptions(HKEY_CURRENT_USER, PRODUCT_NAME);
+		ProductOptions prodOptions(HKEY_CURRENT_USER, PRODUCT_NAME_REG);
 		unsigned int nCount = 0;
 		prodOptions.get_value(g_RecentItemsExclusionsApp.TOTAL_ITEMS_PRUNED_VALUENAME, nCount);
 		return nCount;
 	}
 	unsigned int SetTotalItemsPrunedCount(unsigned int nCount)
 	{
-		ProductOptions prodOptions(HKEY_CURRENT_USER, PRODUCT_NAME);
+		ProductOptions prodOptions(HKEY_CURRENT_USER, PRODUCT_NAME_REG);
 		prodOptions.set_value(g_RecentItemsExclusionsApp.TOTAL_ITEMS_PRUNED_VALUENAME, nCount);
 		return nCount;
 	}
 	unsigned int GetItemsLastScannedCount()
 	{
-		ProductOptions prodOptions(HKEY_CURRENT_USER, PRODUCT_NAME);
+		ProductOptions prodOptions(HKEY_CURRENT_USER, PRODUCT_NAME_REG);
 		unsigned int nCount = 0;
 		prodOptions.get_value(g_RecentItemsExclusionsApp.LAST_SCANNED_COUNT_VALUENAME, nCount);
 		return nCount;
 	}
 	unsigned int SetItemsLastScannedCount(unsigned int nCount)
 	{
-		ProductOptions prodOptions(HKEY_CURRENT_USER, PRODUCT_NAME);
+		ProductOptions prodOptions(HKEY_CURRENT_USER, PRODUCT_NAME_REG);
 		prodOptions.set_value(g_RecentItemsExclusionsApp.LAST_SCANNED_COUNT_VALUENAME, nCount);
 		return nCount;
 	}
 	int GetItemsPrunedTodayCount()
 	{
-		ProductOptions prodOptions(HKEY_CURRENT_USER, PRODUCT_NAME);
+		ProductOptions prodOptions(HKEY_CURRENT_USER, PRODUCT_NAME_REG);
 		// check if day is different than last recorded. If so, reset counter.
 		SYSTEMTIME sysTime = {};
 		GetSystemTime(&sysTime);
@@ -101,7 +101,7 @@ public:
 	}
 	unsigned long SetItemsPrunedTodayCount(unsigned long nCount)
 	{
-		ProductOptions prodOptions(HKEY_CURRENT_USER, PRODUCT_NAME);
+		ProductOptions prodOptions(HKEY_CURRENT_USER, PRODUCT_NAME_REG);
 		prodOptions.set_value(g_RecentItemsExclusionsApp.ITEMS_PRUNED_TODAY_VALUENAME, nCount);
 		return nCount;
 	}

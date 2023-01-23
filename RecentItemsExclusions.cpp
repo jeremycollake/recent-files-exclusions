@@ -43,7 +43,7 @@ void ExitSignalWatchThread()
 void PruningThreadStatusWatchThread()
 {
 	DEBUG_PRINT(L"PruningThreadStatusWatchThread");
-	_ASSERT(g_RecentItemsExclusionsApp.hStatusChangedEvent && g_RecentItemsExclusionsApp.hExitEvent);
+	_ASSERT(g_RecentItemsExclusionsApp.hExitEvent && g_RecentItemsExclusionsApp.hPruningThreadStatusChangedEvent);
 	HANDLE hWaitObjects[2] = { g_RecentItemsExclusionsApp.hExitEvent, g_RecentItemsExclusionsApp.hPruningThreadStatusChangedEvent };
 	bool bEnd = false;
 	do
@@ -398,6 +398,12 @@ LRESULT CALLBACK TrayWndProc(HWND hWnd, UINT nMessage, WPARAM wParam, LPARAM lPa
 	return 0;
 }
 
+void DeprecatedArtifactCleanup()
+{
+	RegDeleteKey(HKEY_CURRENT_USER, L"Software\\" PRODUCT_NAME);
+	RegDeleteKey(HKEY_LOCAL_MACHINE, L"Software\\" PRODUCT_NAME);
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pwCmdLine, int nShowCmd)
 {
 	g_RecentItemsExclusionsApp.hInst = g_RecentItemsExclusionsApp.hResourceModule = GetModuleHandle(nullptr);
@@ -422,6 +428,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pwCmdLine
 	else if (vm.count("install"))
 	{
 		DEBUG_PRINT(L"-install");
+
+		DeprecatedArtifactCleanup();
+
 		CTaskScheduler TaskScheduler;
 		WCHAR wszFile[MAX_PATH + 1] = { 0 };
 		if (GetModuleFileName(NULL, wszFile, _countof(wszFile)) && wszFile[0])
@@ -448,8 +457,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pwCmdLine
 			DEBUG_PRINT(L"ERROR removing Task Scheduler task");
 			return 1;
 		}
-		RegDeleteKey(HKEY_CURRENT_USER, L"Software\\" PRODUCT_NAME);
-		RegDeleteKey(HKEY_LOCAL_MACHINE, L"Software\\" PRODUCT_NAME);
+		RegDeleteKey(HKEY_CURRENT_USER, L"Software\\" PRODUCT_NAME_REG);
+		RegDeleteKey(HKEY_LOCAL_MACHINE, L"Software\\" PRODUCT_NAME_REG);
+		DeprecatedArtifactCleanup();
 		return 0;
 	}
 	else if (vm.count("close"))
@@ -511,7 +521,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pwCmdLine
 	}
 
 	{
-		ProductOptions prodOptions_Machine(HKEY_LOCAL_MACHINE, PRODUCT_NAME);
+		ProductOptions prodOptions_Machine(HKEY_LOCAL_MACHINE, PRODUCT_NAME_REG);
 		if (!prodOptions_Machine[L"darkmode_disable"])
 		{
 			// dark mode temporary disabled for further dev

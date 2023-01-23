@@ -10,8 +10,8 @@ SetCompressor /Solid lzma
 SetCompressorDictSize 32
 
 ; version information
-!define Version_File "0.9.0.7"
-!define Version_Text "0.9.0.7"
+!define Version_File "0.9.0.9"
+!define Version_Text "0.9.0.9"
 !define Version_Major "0"
 !define Version_Minor "9"
 
@@ -224,10 +224,15 @@ Section uninstall
   DeleteRegKey HKCU "SOFTWARE\RecentFilesExclusions"
   DeleteRegKey HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\RecentFilesExclusions"
   DeleteRegKey HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\RecentFilesExclusions"
+
+  ; deprecated keys
+  DeleteRegKey HKLM "SOFTWARE\Recent Files Exclusions"
+  DeleteRegKey HKCU "SOFTWARE\Recent Files Exclusions"
     
   Delete "$INSTDIR\*"   
   Delete "$SMPROGRAMS\RecentFilesExclusions\*"  
   RMDir /r "$INSTDIR"      
+
 SectionEnd
 
 Function un.onInit  
