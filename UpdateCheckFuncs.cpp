@@ -95,7 +95,7 @@ bool DownloadAndApplyUpdate()
 	}
 	csTargetSavePath.Format(L"%s%s", csTempPath, L"bitsum");
 	CreateDirectory(csTargetSavePath, NULL);
-	csTargetSavePath.AppendFormat(L"\\%s", g_RecentItemsExclusionsApp.INSTALLER_FILENAME);		// our subfolder to adhere to CryptoPrevent compliance
+	csTargetSavePath.AppendFormat(L"\\%s", g_RecentItemsExclusionsApp.INSTALLER_FILENAME);
 
 	DEBUG_PRINT(L"Download save path: %s", csTargetSavePath);
 
