@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <thread>
 #include <vector>
+#include <map>
 #include <string>
 #include <windows.h>
 #include <Shlobj.h>
@@ -107,11 +108,53 @@ public:
 	}
 };
 
+//////////////////////////////////
+// PruningThread
+
 class PruningThread
 {
 private:
 	HANDLE m_hExitEvent = NULL;
 	std::thread m_threadPruner;
+
+	// below are for caching results so we don't have to rescan files when the match pattern set hasn't changed
+	std::vector<std::wstring> m_vwstrLastPatternSet;
+	std::map<std::wstring, FILETIME> m_mapFileToLastWriteAlreadyScannedWithPattern;
+	void CacheUpdateLastSeenPatternSet(const std::vector<std::wstring>& vwstrPatternSet)
+	{
+		if (vwstrPatternSet != m_vwstrLastPatternSet)
+		{
+			DEBUG_PRINT(L"Updating pattern set and invalidating cache ...");
+			m_vwstrLastPatternSet = vwstrPatternSet;
+			m_mapFileToLastWriteAlreadyScannedWithPattern.clear();
+		}
+	}
+	void CacheAddFile(const std::wstring& wstrPath, const FILETIME ftLastWrite)
+	{
+		m_mapFileToLastWriteAlreadyScannedWithPattern[wstrPath] = ftLastWrite;
+		// if cache set exceeds max count, clear the cache and let it repopulate. Necessary due to potentially long-running nature of app, but still unlikely to ever be of issue.
+		if (m_mapFileToLastWriteAlreadyScannedWithPattern.size() > RecentItemsExclusions::MAX_PRUNING_CACHE_ITEM_COUNT)
+		{
+			DEBUG_PRINT(L"Cache exceeds max size, clearing ...");
+			m_mapFileToLastWriteAlreadyScannedWithPattern.clear();
+		}
+	}
+	bool CacheIsInAlreadyScannedSet(const std::wstring& wstrPath, const FILETIME ftLastWrite)
+	{
+		auto i = m_mapFileToLastWriteAlreadyScannedWithPattern.find(wstrPath);
+		if (i != m_mapFileToLastWriteAlreadyScannedWithPattern.end())
+		{
+			//if (CompareFileTime(&i->second, &ftLastWrite) == 0)
+			// do manual member compare instead so we don't have to make an API call
+			if (i->second.dwLowDateTime == ftLastWrite.dwLowDateTime
+				&&
+				i->second.dwHighDateTime == ftLastWrite.dwHighDateTime)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
 
 public:
 	PruningThread() = default;
@@ -256,8 +299,9 @@ private:
 	int PruneFilesystem(const std::vector<std::wstring>& vPaths, const std::vector<std::wstring>& vSearchPatterns)
 	{
 		DEBUG_PRINT(L"PruneFilesystem");
+		CacheUpdateLastSeenPatternSet(vSearchPatterns);
 
-		unsigned int nScannedCount = 0, nDeletedCount = 0;
+		unsigned int nScannedCount = 0, nDeletedCount = 0, nSkippedCount = 0;
 
 		m_pruningStatus.m_pruneThreadState = PruningStatus::PruneThreadState_Pruning;
 		m_pruningStatus.NotifyAllListenersOfChange();
@@ -277,16 +321,28 @@ private:
 				if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
 				{
 					std::wstring filePath = path + L"\\" + findData.cFileName;
-					if (DoesTextExistInFile(filePath, vSearchPatterns))
+
+					if (CacheIsInAlreadyScannedSet(filePath, findData.ftLastWriteTime))
 					{
-						DEBUG_PRINT(L"Text found! Deleting file %s ...", findData.cFileName);
-						if (!DeleteFile(filePath.c_str()))
+						nSkippedCount++;
+					}
+					else
+					{
+						if (DoesTextExistInFile(filePath, vSearchPatterns))
 						{
-							DEBUG_PRINT(L"ERROR: Deleting file %s", filePath.c_str());
+							DEBUG_PRINT(L"Text found! Deleting file %s ...", findData.cFileName);
+							if (!DeleteFile(filePath.c_str()))
+							{
+								DEBUG_PRINT(L"ERROR: Deleting file %s", filePath.c_str());
+							}
+							else
+							{
+								nDeletedCount++;
+							}
 						}
 						else
 						{
-							nDeletedCount++;
+							CacheAddFile(filePath, findData.ftLastWriteTime);
 						}
 					}
 				}
@@ -295,12 +351,15 @@ private:
 			FindClose(hFind);
 		}
 
+		DEBUG_PRINT(L"Scanned %u items, skipped %u, deleted %u", nScannedCount, nSkippedCount, nDeletedCount);
+
 		// update stats
 		m_pruningStatus.m_pruneThreadState = PruningStatus::PruneThreadState_Monitoring;
 		m_pruningStatus.SetItemsLastScannedCount(nScannedCount);
 		m_pruningStatus.SetTotalItemsPrunedCount(m_pruningStatus.GetTotalItemsPrunedCount() + nDeletedCount);
 		m_pruningStatus.SetItemsPrunedTodayCount(m_pruningStatus.GetItemsPrunedTodayCount() + nDeletedCount);
 		m_pruningStatus.NotifyAllListenersOfChange();
+
 		return 0;
 	}
 };

@@ -54,6 +54,9 @@ public:
 		}
 	}
 
+	// if cache set exceeds this count, clear the cache and let it repopulate. Necessary due to potentially long-running nature of app, but still unlikely to ever be of issue.
+	const static unsigned long MAX_PRUNING_CACHE_ITEM_COUNT = 16 * 1024;
+
 	const WCHAR* SETUP_FILE_URL_BASE_PATH = L"https://dl.bitsum.com/files/";
 	const WCHAR* INSTALLER_FILENAME = L"RecentFilesExclusionsSetup.exe";
 	const WCHAR* STARTUP_TASK_NAME = L"Recent Files Exclusions";
