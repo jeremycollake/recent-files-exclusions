@@ -53,7 +53,7 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 	HWND hWndList;
 	static bool s_bChangesMade = false;
 	static HBRUSH hbrBkgnd = nullptr;
-	static const int ctlIds[] = { IDOK, IDCANCEL, IDC_RESET, IDC_STATS, IDC_ADD, IDC_REMOVE, IDC_CLEAR, IDC_LIST_STRINGS, IDC_STATIC, IDC_STATIC_1, IDC_STATIC_2 };
+	static const int ctlIds[] = { IDOK, IDCANCEL, IDC_RESET, IDC_STATS, IDC_ADD, IDC_REMOVE, IDC_CLEAR, IDC_LIST_STRINGS, IDC_STATIC_DESCRIPTION, IDC_STATIC_1, IDC_STATIC_2 };
 
 	switch (message)
 	{
@@ -73,9 +73,11 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 		SendMessage(hDlg, WM_SETICON, ICON_SMALL, (LPARAM)LoadImage(g_RecentItemsExclusionsApp.hResourceModule, MAKEINTRESOURCE(IDI_ICON1), IMAGE_ICON, 16, 16, 0));
 		SendMessage(hDlg, WM_SETICON, ICON_BIG, (LPARAM)LoadImage(g_RecentItemsExclusionsApp.hResourceModule, MAKEINTRESOURCE(IDI_ICON1), IMAGE_ICON, 32, 32, 0));
 
-		s_bChangesMade = false;	// reinit for subsequent dialog instances
+		s_bChangesMade = false;	// reinit for subsequent dialog instances		
 
 		SetMenu(hDlg, LoadMenu(g_RecentItemsExclusionsApp.hResourceModule, MAKEINTRESOURCE(IDR_MENU_MAIN)));
+
+		SetDlgItemText(hDlg, IDC_STATIC_DESCRIPTION, ResourceHelpers::LoadResourceString(g_RecentItemsExclusionsApp.hResourceModule, IDS_PRODUCT_DESCRIPTION).c_str());
 
 		std::vector<std::wstring> vStrings;
 		if (g_RecentItemsExclusionsApp.ListSerializer.LoadListFromFile(g_RecentItemsExclusionsApp.strListSavePath, vStrings) > 0)
