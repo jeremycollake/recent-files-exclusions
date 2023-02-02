@@ -1,6 +1,6 @@
 # Recent Files Exclusions
 
-Recent Files Exclusions provides a way to recursively exclude files and folders from the Windows Recent Files list (the lower pane in Explorer’s home view). This capability is not otherwise available since Windows only allows hiding specific files from Recent Items, and only after they get added.
+Recent Files Exclusions provides a way to recursively exclude files and folders from the Windows Recent Files list (the lower pane in Explorer’s home view). This capability is not otherwise available since Windows only allows hiding specific files from Recent Items, after the fact.
 
 ## Why is it necessary?
 
@@ -16,4 +16,4 @@ You can exclude any path or filenames by using a matching substring. For instanc
 Simply install and it’ll live in your system tray, pruning your Recent Files in real-time. 
 You can specify your exclusion list by clicking the tray icon to open its main window, or re-launching the app.
 
-![Recent Files Exclusions app screenshot text](https://github.com/jeremycollake/recentitemsexclusions/blob/master/screenshots/recentfilesexclusions.png?raw=true)
+![Recent Files Exclusions screenshot](https://github.com/jeremycollake/recentitemsexclusions/blob/master/screenshots/recentfilesexclusions.png?raw=true)

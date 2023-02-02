@@ -10,12 +10,12 @@ SetCompressor /Solid lzma
 SetCompressorDictSize 32
 
 ; version information
-!define Version_File "0.9.9.3"
-!define Version_Text "0.9.9.3"
-!define Version_Major "0"
-!define Version_Minor "9"
+!define Version_File "1.0.0.0"
+!define Version_Text "1.0.0.0"
+!define Version_Major "1"
+!define Version_Minor "0"
 
-!define beta_version
+;!define beta_version
 
 !ifdef beta_version    
     BrandingText "Recent Files Exclusions - ${Version_Text} BETA - Built on ${__DATE__} at ${__TIME__} - (c)2023 Bitsum LLC"    
