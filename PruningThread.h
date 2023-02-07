@@ -275,7 +275,7 @@ private:
 		DWORD dwSizeHigh = 0;
 		DWORD dwSizeLow = GetFileSize(hFile, &dwSizeHigh);
 		bool bTextFound = false;
-		if (dwSizeLow != INVALID_FILE_SIZE)
+		if (dwSizeLow && dwSizeLow != INVALID_FILE_SIZE)
 		{
 			DWORD dwBytesRead = 0;
 			std::vector<char> buffer(dwSizeLow);
@@ -318,7 +318,9 @@ private:
 			}
 			do
 			{
-				if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+				if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) // if not directory
+					&& findData.nFileSizeLow 	// and not empty
+					&& !findData.nFileSizeHigh)	// and not too big
 				{
 					std::wstring filePath = path + L"\\" + findData.cFileName;
 
