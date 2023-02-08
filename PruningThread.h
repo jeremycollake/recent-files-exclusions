@@ -117,6 +117,8 @@ private:
 	HANDLE m_hExitEvent = NULL;
 	std::thread m_threadPruner;
 
+	enum FileScanResult { FileError, StringNotFound, StringFound };
+
 	// below are for caching results so we don't have to rescan files when the match pattern set hasn't changed
 	std::vector<std::wstring> m_vwstrLastPatternSet;
 	std::map<std::wstring, FILETIME> m_mapFileToLastWriteAlreadyScannedWithPattern;
@@ -263,37 +265,37 @@ private:
 		DEBUG_PRINT(L"FilesystemPruningThread end");
 		return 0;
 	}
-	bool DoesTextExistInFile(const std::wstring& filepath, const std::vector<std::wstring>& vSearchPatterns)
+	FileScanResult DoesTextExistInFile(const std::wstring& filepath, const std::vector<std::wstring>& vSearchPatterns)
 	{
 		// read file into buffer
 		HANDLE hFile = CreateFile(filepath.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 		if (hFile == INVALID_HANDLE_VALUE)
 		{
 			DEBUG_PRINT(L"ERROR: Opening %s", filepath.c_str());
-			return false;
+			return FileError;
 		}
 		DWORD dwSizeHigh = 0;
 		DWORD dwSizeLow = GetFileSize(hFile, &dwSizeHigh);
-		bool bTextFound = false;
+		FileScanResult scanResult = FileError;
 		if (dwSizeLow && dwSizeLow != INVALID_FILE_SIZE)
 		{
 			DWORD dwBytesRead = 0;
 			std::vector<char> buffer(dwSizeLow);
 			if (ReadFile(hFile, buffer.data(), dwSizeLow, &dwBytesRead, NULL))
 			{
+				scanResult = StringNotFound;
 				// search for text
 				for (auto iPattern : vSearchPatterns)
 				{
 					if (std::search(buffer.begin(), buffer.end(), iPattern.begin(), iPattern.end(), [](wchar_t a, wchar_t b) { return std::toupper(a) == std::toupper(b); }) != buffer.end())
 					{
-						bTextFound = true;
-						break;
+						scanResult = StringFound;
 					}
 				}
 			}
 		}
 		CloseHandle(hFile);
-		return bTextFound;
+		return scanResult;
 	}
 
 	int PruneFilesystem(const std::vector<std::wstring>& vPaths, const std::vector<std::wstring>& vSearchPatterns)
@@ -301,7 +303,7 @@ private:
 		DEBUG_PRINT(L"PruneFilesystem");
 		CacheUpdateLastSeenPatternSet(vSearchPatterns);
 
-		unsigned int nScannedCount = 0, nDeletedCount = 0, nSkippedCount = 0;
+		unsigned int nScannedCount = 0, nDeletedCount = 0, nSkippedCount = 0, nErrorCount = 0;
 
 		m_pruningStatus.m_pruneThreadState = PruningStatus::PruneThreadState_Pruning;
 		m_pruningStatus.NotifyAllListenersOfChange();
@@ -330,8 +332,9 @@ private:
 					}
 					else
 					{
-						if (DoesTextExistInFile(filePath, vSearchPatterns))
+						switch (DoesTextExistInFile(filePath, vSearchPatterns))
 						{
+						case StringFound:
 							DEBUG_PRINT(L"Text found! Deleting file %s ...", findData.cFileName);
 							if (!DeleteFile(filePath.c_str()))
 							{
@@ -341,19 +344,26 @@ private:
 							{
 								nDeletedCount++;
 							}
-						}
-						else
-						{
+							break;
+						case StringNotFound:
 							CacheAddFile(filePath, findData.ftLastWriteTime);
+							break;
+						case FileError:
+							DEBUG_PRINT(L"ERROR: Accessing file %s", filePath.c_str());
+							nErrorCount++;
+							break;
+						default:
+							_ASSERT(0);
+							break;
 						}
 					}
+					nScannedCount++;
 				}
-				nScannedCount++;
 			} while (FindNextFile(hFind, &findData));
 			FindClose(hFind);
 		}
 
-		DEBUG_PRINT(L"Scanned %u items, skipped %u, deleted %u", nScannedCount, nSkippedCount, nDeletedCount);
+		DEBUG_PRINT(L"Scanned %u items, skipped %u, deleted %u, errors %u", nScannedCount, nSkippedCount, nDeletedCount, nErrorCount);
 
 		// update stats
 		m_pruningStatus.m_pruneThreadState = PruningStatus::PruneThreadState_Monitoring;
