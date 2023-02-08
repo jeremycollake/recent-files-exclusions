@@ -57,6 +57,11 @@ public:
 	// if cache set exceeds this count, clear the cache and let it repopulate. Necessary due to potentially long-running nature of app, but still unlikely to ever be of issue.
 	const static unsigned long MAX_PRUNING_CACHE_ITEM_COUNT = 16 * 1024;
 
+	// this delay has two purposes:
+	//  1. Give filesystem changes a chance to settle
+	//  2. A rate-limiting safety in the worst edge case of rapid, frequent changes
+	const static unsigned long DELAY_AFTER_FS_CHANGE_BEFORE_SCAN_MS = 100;
+
 	const WCHAR* SETUP_FILE_URL_BASE_PATH = L"https://dl.bitsum.com/files/";
 	const WCHAR* INSTALLER_FILENAME = L"RecentFilesExclusionsSetup.exe";
 	const WCHAR* STARTUP_TASK_NAME = L"Recent Files Exclusions";

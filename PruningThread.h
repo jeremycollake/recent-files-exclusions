@@ -240,18 +240,16 @@ private:
 				bExit = true;
 				break;
 			case WAIT_OBJECT_0 + 1:
+				// see rationale in DELAY_AFTER_FS_CHANGE_BEFORE_SCAN_MS defintion
+				Sleep(RecentItemsExclusions::DELAY_AFTER_FS_CHANGE_BEFORE_SCAN_MS);
+
 				DEBUG_PRINT(L"Change notification received, pruning ...");
 				PruneFilesystem(vPaths, vSearchPatterns);
+
 				if (!FindNextChangeNotification(hFindHandle))
 				{
 					DEBUG_PRINT(L"ERROR: Change notification failed.");
 					bExit = true;
-				}
-				else
-				{
-					// Safety sleep in case monitored folder has rapid, continuous changes, causing this thread to hog CPU
-					//  Trade-off is this could delay processing of rapidly fired changes.
-					Sleep(100);
 				}
 				break;
 			default:
