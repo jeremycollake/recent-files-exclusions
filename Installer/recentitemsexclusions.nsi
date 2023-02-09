@@ -10,8 +10,8 @@ SetCompressor /Solid lzma
 SetCompressorDictSize 32
 
 ; version information
-!define Version_File "1.0.0.0"
-!define Version_Text "1.0.0.0"
+!define Version_File "1.0.1.0"
+!define Version_Text "1.0.1.0"
 !define Version_Major "1"
 !define Version_Minor "0"
 
