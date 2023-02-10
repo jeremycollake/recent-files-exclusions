@@ -81,7 +81,7 @@ public:
 		prodOptions.set_value(g_RecentItemsExclusionsApp.LAST_SCANNED_COUNT_VALUENAME, nCount);
 		return nCount;
 	}
-	int GetItemsPrunedTodayCount()
+	unsigned int GetItemsPrunedTodayCount()
 	{
 		ProductOptions prodOptions(HKEY_CURRENT_USER, PRODUCT_NAME_REG);
 		// check if day is different than last recorded. If so, reset counter.
@@ -100,7 +100,7 @@ public:
 		prodOptions.get_value(g_RecentItemsExclusionsApp.ITEMS_PRUNED_TODAY_VALUENAME, nCount);
 		return nCount;
 	}
-	unsigned long SetItemsPrunedTodayCount(unsigned long nCount)
+	unsigned int SetItemsPrunedTodayCount(unsigned int nCount)
 	{
 		ProductOptions prodOptions(HKEY_CURRENT_USER, PRODUCT_NAME_REG);
 		prodOptions.set_value(g_RecentItemsExclusionsApp.ITEMS_PRUNED_TODAY_VALUENAME, nCount);
