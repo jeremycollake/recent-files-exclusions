@@ -286,7 +286,7 @@ LRESULT CALLBACK TrayWndProc(HWND hWnd, UINT nMessage, WPARAM wParam, LPARAM lPa
 		ndata.uFlags = NIF_INFO;
 		ndata.uTimeout = 10000;
 		wcscpy_s(ndata.szInfoTitle, _countof(ndata.szInfoTitle) - 1, L"Update for " PRODUCT_NAME " is available");
-		wsprintf(ndata.szInfo, L"Click here update.");
+		wsprintf(ndata.szInfo, L"Click here to update.");
 		Shell_NotifyIcon(NIM_MODIFY, &ndata);
 		bNotificationWaiting_DoUpdate = true;
 	}
