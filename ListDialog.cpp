@@ -265,8 +265,8 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 					else
 					{
 						ListBox_AddString(GetDlgItem(hDlg, IDC_LIST_STRINGS), wstrNew.c_str());
+						s_bChangesMade = true;
 					}
-					s_bChangesMade = true;
 				}
 			}
 			return TRUE;
