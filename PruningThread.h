@@ -55,31 +55,34 @@ public:
 		SetItemsPrunedTodayCount(0);
 		NotifyAllListenersOfChange();
 	}
+	unsigned int GetMetric(const WCHAR* pwszName)
+	{
+		ProductOptions prodOptions(HKEY_CURRENT_USER, PRODUCT_NAME_REG);
+		unsigned int nVal = 0;
+		prodOptions.get_value(pwszName, nVal);
+		return nVal;
+	}
+	unsigned int SetMetric(const WCHAR* pwszName, const unsigned int nVal)
+	{
+		ProductOptions prodOptions(HKEY_CURRENT_USER, PRODUCT_NAME_REG);
+		prodOptions.set_value(pwszName, nVal);
+		return nVal;
+	}
 	unsigned int GetTotalItemsPrunedCount()
 	{
-		ProductOptions prodOptions(HKEY_CURRENT_USER, PRODUCT_NAME_REG);
-		unsigned int nCount = 0;
-		prodOptions.get_value(g_RecentItemsExclusionsApp.TOTAL_ITEMS_PRUNED_VALUENAME, nCount);
-		return nCount;
+		return GetMetric(g_RecentItemsExclusionsApp.TOTAL_ITEMS_PRUNED_VALUENAME);
 	}
-	unsigned int SetTotalItemsPrunedCount(unsigned int nCount)
+	unsigned int SetTotalItemsPrunedCount(const unsigned int nCount)
 	{
-		ProductOptions prodOptions(HKEY_CURRENT_USER, PRODUCT_NAME_REG);
-		prodOptions.set_value(g_RecentItemsExclusionsApp.TOTAL_ITEMS_PRUNED_VALUENAME, nCount);
-		return nCount;
+		return SetMetric(g_RecentItemsExclusionsApp.TOTAL_ITEMS_PRUNED_VALUENAME, nCount);
 	}
 	unsigned int GetItemsLastScannedCount()
 	{
-		ProductOptions prodOptions(HKEY_CURRENT_USER, PRODUCT_NAME_REG);
-		unsigned int nCount = 0;
-		prodOptions.get_value(g_RecentItemsExclusionsApp.LAST_SCANNED_COUNT_VALUENAME, nCount);
-		return nCount;
+		return GetMetric(g_RecentItemsExclusionsApp.LAST_SCANNED_COUNT_VALUENAME);
 	}
-	unsigned int SetItemsLastScannedCount(unsigned int nCount)
+	unsigned int SetItemsLastScannedCount(const unsigned int nCount)
 	{
-		ProductOptions prodOptions(HKEY_CURRENT_USER, PRODUCT_NAME_REG);
-		prodOptions.set_value(g_RecentItemsExclusionsApp.LAST_SCANNED_COUNT_VALUENAME, nCount);
-		return nCount;
+		return SetMetric(g_RecentItemsExclusionsApp.LAST_SCANNED_COUNT_VALUENAME, nCount);
 	}
 	unsigned int GetItemsPrunedTodayCount()
 	{
@@ -100,11 +103,9 @@ public:
 		prodOptions.get_value(g_RecentItemsExclusionsApp.ITEMS_PRUNED_TODAY_VALUENAME, nCount);
 		return nCount;
 	}
-	unsigned int SetItemsPrunedTodayCount(unsigned int nCount)
+	unsigned int SetItemsPrunedTodayCount(const unsigned int nCount)
 	{
-		ProductOptions prodOptions(HKEY_CURRENT_USER, PRODUCT_NAME_REG);
-		prodOptions.set_value(g_RecentItemsExclusionsApp.ITEMS_PRUNED_TODAY_VALUENAME, nCount);
-		return nCount;
+		return SetMetric(g_RecentItemsExclusionsApp.ITEMS_PRUNED_TODAY_VALUENAME, nCount);
 	}
 };
 
