@@ -37,9 +37,21 @@ public:
 		}
 	}
 
-	void AddListeningEvent(HANDLE hEvent)
+	void AddListeningEvent(const HANDLE hEvent)
 	{
+		RemoveListeningEvent(hEvent);	// make sure it's not already in the list
 		m_vhListeningEventsForStatusChange.push_back(hEvent);
+	}
+	void RemoveListeningEvent(const HANDLE hEvent)
+	{
+		for (auto it = m_vhListeningEventsForStatusChange.begin(); it != m_vhListeningEventsForStatusChange.end(); ++it)
+		{
+			if (*it == hEvent)
+			{
+				m_vhListeningEventsForStatusChange.erase(it);
+				break;
+			}
+		}
 	}
 	void NotifyAllListenersOfChange()
 	{

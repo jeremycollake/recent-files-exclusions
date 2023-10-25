@@ -85,8 +85,13 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 			SetListInDialog(GetDlgItem(hDlg, IDC_LIST_STRINGS), vStrings);
 		}
 
-		// register for notifications of pruning thread state change
-		g_PruningThread.m_pruningStatus.AddListeningEvent(g_RecentItemsExclusionsApp.hPruningThreadStatusChangedEvent);
+		// register for notifications of enforcement thread state change
+		static bool bRegisteredNotificationEvent = false;
+		if (!bRegisteredNotificationEvent)
+		{
+			g_PruningThread.m_pruningStatus.AddListeningEvent(g_RecentItemsExclusionsApp.hPruningThreadStatusChangedEvent);
+			bRegisteredNotificationEvent = true;
+		}
 
 		// populate initial stats
 		SendMessage(hDlg, RecentItemsExclusions::UWM_STATUS_CHANGED, 0, 0);
