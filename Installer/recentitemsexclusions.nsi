@@ -10,8 +10,8 @@ SetCompressor /Solid lzma
 SetCompressorDictSize 32
 
 ; version information
-!define Version_File "1.0.1.0"
-!define Version_Text "1.0.1.0"
+!define Version_File "1.0.1.1"
+!define Version_Text "1.0.1.1"
 !define Version_Major "1"
 !define Version_Minor "0"
 
@@ -211,12 +211,8 @@ SectionEnd
 ; ==================================================================================
 ; Main uninstall
 ;
-Section uninstall
- 
-  SetShellVarContext all           
-  Delete "$SMPROGRAMS\RecentFilesExclusions\*"  
-  RMDir /r "$SMPROGRAMS\RecentFilesExclusions"   
-         
+Section uninstall           
+  
   ExecWait '"$INSTDIR\RecentFilesExclusions.exe" -close"'	    		  ; close any running instances
   ExecWait '"$INSTDIR\RecentFilesExclusions.exe" -uninstall"'			  ; remove startup locations
   
@@ -228,10 +224,15 @@ Section uninstall
   ; deprecated keys
   DeleteRegKey HKLM "SOFTWARE\Recent Files Exclusions"
   DeleteRegKey HKCU "SOFTWARE\Recent Files Exclusions"
-    
+
+  SetShellVarContext all           
   Delete "$INSTDIR\*"   
   Delete "$SMPROGRAMS\RecentFilesExclusions\*"  
+  RMDir /r "$SMPROGRAMS\RecentFilesExclusions"   
   RMDir /r "$INSTDIR"      
+  RMDir /r "$APPDATA\RecentFilesExclusions"
+  SetShellVarContext current
+  RMDir /r "$APPDATA\RecentFilesExclusions"
 
 SectionEnd
 
