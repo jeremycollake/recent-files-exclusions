@@ -227,9 +227,19 @@ private:
 
 		// build the paths we want to check
 		std::vector<std::wstring> vPaths;
-		vPaths.push_back(pathRecentItems);
-		vPaths.push_back(pathRecentItems + L"\\AutomaticDestinations");
-		vPaths.push_back(pathRecentItems + L"\\CustomDestinations");
+
+		if (g_RecentItemsExclusionsApp.GetShouldPruneRecentItems())
+		{
+			vPaths.push_back(pathRecentItems);
+		}
+		if (g_RecentItemsExclusionsApp.GetShouldPruneAutoDest())
+		{
+			vPaths.push_back(pathRecentItems + L"\\AutomaticDestinations");
+		}
+		if (g_RecentItemsExclusionsApp.GetShouldPruneCustomDest())
+		{
+			vPaths.push_back(pathRecentItems + L"\\CustomDestinations");
+		}
 
 		// do an initial prune
 		PruneFilesystem(vPaths, vSearchPatterns);

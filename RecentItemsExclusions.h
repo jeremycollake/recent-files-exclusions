@@ -13,6 +13,9 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
 class RecentItemsExclusions
 {
+	ProductOptions* pProdOptions_Machine = new ProductOptions(HKEY_LOCAL_MACHINE, PRODUCT_NAME_REG);
+	ProductOptions* pProdOptions_User = new ProductOptions(HKEY_CURRENT_USER, PRODUCT_NAME_REG);
+
 public:
 	RecentItemsExclusions()
 	{
@@ -52,6 +55,14 @@ public:
 		{
 			CloseHandle(hExitEvent);
 		}
+		if (pProdOptions_Machine)
+		{
+			delete pProdOptions_Machine;
+		}
+		if (pProdOptions_User)
+		{
+			delete pProdOptions_User;
+		}
 	}
 
 	// if cache set exceeds this count, clear the cache and let it repopulate. Necessary due to potentially long-running nature of app, but still unlikely to ever be of issue.
@@ -71,6 +82,13 @@ public:
 	const WCHAR* UPDATE_CHECK_URL = L"https://update.bitsum.com/versioninfo/recentfilesexclusions/";
 	const static unsigned long UPDATE_CHECK_INTERVAL_MS = 1000 * 60 * 60 * 24;	// 1 day
 	std::wstring strFetechedVersionAvailableForDownload;
+
+	const WCHAR* OPTION_NAME_PRUNE_RECENTITEMS = L"PruneRecentItems";
+	const bool OPTION_DEFAULT_PRUNE_RECENTITEMS = true;
+	const WCHAR* OPTION_NAME_PRUNE_AUTODEST = L"PruneAutomaticDestinations";
+	const bool OPTION_DEFAULT_PRUNE_AUTODEST = true;
+	const WCHAR* OPTION_NAME_PRUNE_CUSTOMDEST = L"PruneCustomDestinations";
+	const bool OPTION_DEFAULT_PRUNE_CUSTOMDEST = false;
 
 	ListSerializer ListSerializer;
 	std::wstring strListSavePath;
@@ -104,48 +122,81 @@ public:
 	const WCHAR* ITEMS_PRUNED_TODAY_VALUENAME = L"ItemsPrunedTodayCount";
 	const WCHAR* LAST_DAY_VALUENAME = L"LastDay";
 
+	bool GetNamedBooleanOptionValue(const WCHAR* pwszName, const bool bForAllUsers, const bool bDefault)
+	{
+		bool bVal = bDefault;
+		if (bForAllUsers)
+		{
+			pProdOptions_Machine->get_value(pwszName, bVal, bDefault);
+		}
+		else
+		{
+			pProdOptions_User->get_value(pwszName, bVal, bDefault);
+		}
+		return bVal;
+	}
+
+	bool SetNamedBooleanOptionValue(const WCHAR* pwszName, const bool bForAllUsers, const bool bVal)
+	{
+		if (bForAllUsers)
+		{
+			return pProdOptions_Machine->set_value(pwszName, bVal);
+		}
+		return pProdOptions_User->set_value(pwszName, bVal);
+	}
+
 	void SetUpdateChecksEnabled(const bool bVal)
 	{
-		ProductOptions prodOptions_User(HKEY_CURRENT_USER, PRODUCT_NAME_REG);
-		ProductOptions prodOptions_Machine(HKEY_LOCAL_MACHINE, PRODUCT_NAME_REG);
-		prodOptions_User.set_value(UPDATE_CHECKS_DISABLED_VALUENAME, !bVal);
-		prodOptions_Machine.set_value(UPDATE_CHECKS_DISABLED_VALUENAME, !bVal);
+		// inverted bool, should rename this method to 'Disabled'
+		SetNamedBooleanOptionValue(UPDATE_CHECKS_DISABLED_VALUENAME, true, !bVal);
+		SetNamedBooleanOptionValue(UPDATE_CHECKS_DISABLED_VALUENAME, false, !bVal);
 		return;
 	}
 
 	bool AreUpdateChecksEnabled()
 	{
-		ProductOptions prodOptions_User(HKEY_CURRENT_USER, PRODUCT_NAME_REG);
-		ProductOptions prodOptions_Machine(HKEY_LOCAL_MACHINE, PRODUCT_NAME_REG);
-		if (prodOptions_User[UPDATE_CHECKS_DISABLED_VALUENAME]
+		// inverted bool, should rename this method to 'Disabled'
+		return !(GetNamedBooleanOptionValue(UPDATE_CHECKS_DISABLED_VALUENAME, true, false)
 			||
-			prodOptions_Machine[UPDATE_CHECKS_DISABLED_VALUENAME])
-		{
-			return false;
-		}
-		return true;
+			GetNamedBooleanOptionValue(UPDATE_CHECKS_DISABLED_VALUENAME, false, false));
 	}
 
 	void SetBetaUpdatesEnabled(const bool bVal)
 	{
-		ProductOptions prodOptions_User(HKEY_CURRENT_USER, PRODUCT_NAME_REG);
-		ProductOptions prodOptions_Machine(HKEY_LOCAL_MACHINE, PRODUCT_NAME_REG);
-		prodOptions_User.set_value(BETA_UPDATES_VALUENAME, bVal);
-		prodOptions_Machine.set_value(BETA_UPDATES_VALUENAME, bVal);
-		return;
+		SetNamedBooleanOptionValue(BETA_UPDATES_VALUENAME, true, bVal);
+		SetNamedBooleanOptionValue(BETA_UPDATES_VALUENAME, false, bVal);
 	}
 
 	bool AreBetaUpdatesEnabled()
 	{
-		ProductOptions prodOptions_User(HKEY_CURRENT_USER, PRODUCT_NAME_REG);
-		ProductOptions prodOptions_Machine(HKEY_LOCAL_MACHINE, PRODUCT_NAME_REG);
-		if (prodOptions_User[BETA_UPDATES_VALUENAME]
+		return (GetNamedBooleanOptionValue(BETA_UPDATES_VALUENAME, true, false)
 			||
-			prodOptions_Machine[BETA_UPDATES_VALUENAME])
-		{
-			return true;
-		}
-		return false;
+			GetNamedBooleanOptionValue(BETA_UPDATES_VALUENAME, false, false));
+	}
+
+	bool GetShouldPruneRecentItems()
+	{
+		return GetNamedBooleanOptionValue(OPTION_NAME_PRUNE_RECENTITEMS, false, OPTION_DEFAULT_PRUNE_RECENTITEMS);
+	}
+	bool SetShouldPruneRecentItems(const bool bVal)
+	{
+		return SetNamedBooleanOptionValue(OPTION_NAME_PRUNE_RECENTITEMS, false, bVal);
+	}
+	bool GetShouldPruneAutoDest()
+	{
+		return GetNamedBooleanOptionValue(OPTION_NAME_PRUNE_AUTODEST, false, OPTION_DEFAULT_PRUNE_AUTODEST);
+	}
+	bool SetShouldPruneAutoDest(const bool bVal)
+	{
+		return SetNamedBooleanOptionValue(OPTION_NAME_PRUNE_AUTODEST, false, bVal);
+	}
+	bool GetShouldPruneCustomDest()
+	{
+		return GetNamedBooleanOptionValue(OPTION_NAME_PRUNE_CUSTOMDEST, false, OPTION_DEFAULT_PRUNE_CUSTOMDEST);
+	}
+	bool SetShouldPruneCustomDest(const bool bVal)
+	{
+		return SetNamedBooleanOptionValue(OPTION_NAME_PRUNE_CUSTOMDEST, false, bVal);
 	}
 };
 
