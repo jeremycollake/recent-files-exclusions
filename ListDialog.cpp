@@ -85,10 +85,6 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 			SetListInDialog(GetDlgItem(hDlg, IDC_LIST_STRINGS), vStrings);
 		}
 
-		CheckMenuItem(GetMenu(hDlg), ID_OPTIONS_PRUNE_RECENTITEMS, g_RecentItemsExclusionsApp.GetShouldPruneRecentItems() ? MF_CHECKED : MF_UNCHECKED);
-		CheckMenuItem(GetMenu(hDlg), ID_OPTIONS_PRUNE_AUTO_DEST, g_RecentItemsExclusionsApp.GetShouldPruneAutoDest() ? MF_CHECKED : MF_UNCHECKED);
-		CheckMenuItem(GetMenu(hDlg), ID_OPTIONS_PRUNE_CUSTOM_DEST, g_RecentItemsExclusionsApp.GetShouldPruneCustomDest() ? MF_CHECKED : MF_UNCHECKED);
-
 		// register for notifications of enforcement thread state change
 		static bool bRegisteredNotificationEvent = false;
 		if (!bRegisteredNotificationEvent)
@@ -175,6 +171,9 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 			EnableMenuItem(hMenu, ID_UPDATES_INCLUDEBETAS, MF_GRAYED | MF_DISABLED);
 #endif	
 			CheckMenuItem(hMenu, ID_UPDATES_INCLUDEBETAS, g_RecentItemsExclusionsApp.AreBetaUpdatesEnabled() ? MF_CHECKED : MF_UNCHECKED);
+			CheckMenuItem(hMenu, ID_OPTIONS_PRUNE_RECENTITEMS, g_RecentItemsExclusionsApp.GetShouldPruneRecentItems() ? MF_CHECKED : MF_UNCHECKED);
+			CheckMenuItem(hMenu, ID_OPTIONS_PRUNE_AUTO_DEST, g_RecentItemsExclusionsApp.GetShouldPruneAutoDest() ? MF_CHECKED : MF_UNCHECKED);
+			CheckMenuItem(hMenu, ID_OPTIONS_PRUNE_CUSTOM_DEST, g_RecentItemsExclusionsApp.GetShouldPruneCustomDest() ? MF_CHECKED : MF_UNCHECKED);
 			// hMenu doesn't need freed
 		}
 		break;
@@ -240,19 +239,16 @@ INT_PTR WINAPI ListDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 		case ID_OPTIONS_PRUNE_RECENTITEMS:
 		{
 			g_RecentItemsExclusionsApp.SetShouldPruneRecentItems(!g_RecentItemsExclusionsApp.GetShouldPruneRecentItems());
-			CheckMenuItem(GetMenu(hDlg), ID_OPTIONS_PRUNE_RECENTITEMS, g_RecentItemsExclusionsApp.GetShouldPruneRecentItems() ? MF_CHECKED : MF_UNCHECKED);
 		}
 		break;
 		case ID_OPTIONS_PRUNE_AUTO_DEST:
 		{
 			g_RecentItemsExclusionsApp.SetShouldPruneAutoDest(!g_RecentItemsExclusionsApp.GetShouldPruneAutoDest());
-			CheckMenuItem(GetMenu(hDlg), ID_OPTIONS_PRUNE_AUTO_DEST, g_RecentItemsExclusionsApp.GetShouldPruneAutoDest() ? MF_CHECKED : MF_UNCHECKED);
 		}
 		break;
 		case ID_OPTIONS_PRUNE_CUSTOM_DEST:
 		{
 			g_RecentItemsExclusionsApp.SetShouldPruneCustomDest(!g_RecentItemsExclusionsApp.GetShouldPruneCustomDest());
-			CheckMenuItem(GetMenu(hDlg), ID_OPTIONS_PRUNE_CUSTOM_DEST, g_RecentItemsExclusionsApp.GetShouldPruneCustomDest() ? MF_CHECKED : MF_UNCHECKED);
 		}
 		break;
 		case ID_FILE_MINIMIZE:
